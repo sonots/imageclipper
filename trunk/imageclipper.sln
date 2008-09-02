@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imageclipper", "imageclipper.vcproj", "{835DE685-39EF-497C-B8A7-0B6377900BBC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{835DE685-39EF-497C-B8A7-0B6377900BBC}.Debug|Win32.ActiveCfg = Debug|Win32
+		{835DE685-39EF-497C-B8A7-0B6377900BBC}.Debug|Win32.Build.0 = Debug|Win32
+		{835DE685-39EF-497C-B8A7-0B6377900BBC}.Release|Win32.ActiveCfg = Release|Win32
+		{835DE685-39EF-497C-B8A7-0B6377900BBC}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
