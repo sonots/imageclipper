@@ -328,7 +328,7 @@ int main( int argc, char *argv[] )
     {
         if( output_format == NULL ) output_format = imgout_format;
 
-        cerr << "Now reading the directory....." << endl;
+        cerr << "Now reading the directory..... ";
         if( is_directory )
         {
             filelist = get_filelist( reference, imagetypes, fs::regular_file );
@@ -355,6 +355,7 @@ int main( int argc, char *argv[] )
                 if( filename->native_file_string() == reference.native_file_string() ) break;
             }
         }
+        cerr << "Done!" << endl;
         img = cvLoadImage( filename->native_file_string().c_str() );
     }
     else if( is_video )
