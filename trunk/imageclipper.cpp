@@ -245,9 +245,9 @@ void usage( const char* com, const fs::path &reference, const char* imgout_forma
     cerr << " [option]... [reference]" << endl;
     cerr << "  <reference = " << reference << ">" << endl;
     cerr << "    <reference> would be a directory or an image or a video filename." << endl;
-    cerr << "    For a directory, image files in the directory will be read sequencially." << endl;
+    cerr << "    For a directory, image files in the directory will be read sequentially." << endl;
     cerr << "    For an image, it is started to read directory from this image file." << endl;
-    cerr << "    For a video, frames in the video are read sequencially." << endl;
+    cerr << "    For a video, frames in the video are read sequentially." << endl;
     cerr << endl;
     cerr << "  Options" << endl;
     cerr << "    -o <output_format = " << imgout_format << " (image) " << endl;
