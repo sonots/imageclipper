@@ -36,7 +36,7 @@ for (my $i = 0; $i <= $#ARGV; $i++) {
         $trim = 1;
     } elsif ($ARGV[$i] eq "-b" || $ARGV[$i] eq "--basename" || $ARGV[$i] eq "-basename") {
         $basename = 1;
-    } elsif ($ARGV[$i] eq "-ls" ) {
+    } elsif ($ARGV[$i] eq "-ls" || $ARGV[$i] eq "--ls") {
     	$lsformat = 1;
     } elsif (substr($ARGV[$i],0,1) eq "-") {
         print "No such a option " . $ARGV[$i] . "\n";
