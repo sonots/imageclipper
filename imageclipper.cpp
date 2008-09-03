@@ -238,7 +238,7 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
 * Print out usage
 */
 void usage( const char* com, const fs::path &reference, const char* imgout_format,
-           const char* aviout_format )
+           const char* vidout_format )
 {
     cerr << "ImageClipper - image clipping helper tool." << endl;
     cerr << "Command Usage: " << fs::path( com ).leaf();
@@ -250,9 +250,9 @@ void usage( const char* com, const fs::path &reference, const char* imgout_forma
     cerr << "    For a video, frames in the video are read sequentially." << endl;
     cerr << endl;
     cerr << "  Options" << endl;
-    cerr << "    -o <output_format = " << imgout_format << " (image) " << endl;
-    cerr << "            " << aviout_format << " (video)>" << endl;
-    cerr << "        Determine the output file format and path." << endl;
+    cerr << "    -f <output_format = imgout_format or vidout_format>" << endl;
+    cerr << "        Determine the output file path format." << endl;
+    cerr << "        This is a syntax sugar for -i and -v. " << endl;
     cerr << "        Format Expression)" << endl;
     cerr << "            %d - dirname of the original" << endl;
     cerr << "            %i - filename of the original without extension" << endl;
@@ -264,8 +264,12 @@ void usage( const char* com, const fs::path &reference, const char* imgout_forma
     cerr << "            %f - frame number (for video)" << endl;
     cerr << "        Example) ./$i_%04x_%04y_%04w_%04h.%e" << endl;
     cerr << "            Store into software directory and use image type of the original." << endl;
-    cerr << "        Supprted Image Type)" << endl;
+    cerr << "        Supported Image Type)" << endl;
     cerr << "            bmp|dib|jpeg|jpg|jpe|png|pbm|pgm|ppm|sr|ras|tiff|exr|jp2" << endl;
+    cerr << "    -i <imgout_format = " << imgout_format << ">" << endl;
+    cerr << "        Determine the output file path format for image inputs." << endl;
+    cerr << "    -v <vidout_format = " << vidout_format << ">" << endl;
+    cerr << "        Determine the output file path format for a video input." << endl;
     cerr << "    -h" << endl;
     cerr << "    --help" << endl;
     cerr << "        Show this help" << endl;
@@ -290,7 +294,7 @@ int main( int argc, char *argv[] )
     fs::path reference( "." );
     bool show = false;
     const char* imgout_format = "%d/imageclipper/%i.%e_%04x_%04y_%04w_%04h.png";
-    const char* aviout_format = "%d/imageclipper/%i.%e_%04f_%04x_%04y_%04w_%04h.png";
+    const char* vidout_format = "%d/imageclipper/%i.%e_%04f_%04x_%04y_%04w_%04h.png";
     const char* output_format = NULL;
     boost::regex imagetypes( ".*\\.(bmp|dib|jpeg|jpg|jpe|png|pbm|pgm|ppm|sr|ras|tiff|exr|jp2)$", 
         boost::regex_constants::icase );
@@ -303,12 +307,20 @@ int main( int argc, char *argv[] )
     {
         if( !strcmp( argv[i], "-h" ) || !strcmp( argv[i], "--help" ) )
         {
-            usage( argv[0], reference, imgout_format, aviout_format );
+            usage( argv[0], reference, imgout_format, vidout_format );
             return 0;
         } 
-        else if( !strcmp( argv[i], "-o" ) || !strcmp( argv[i], "--output" ) )
+        else if( !strcmp( argv[i], "-f" ) || !strcmp( argv[i], "--output_format" ) )
         {
             output_format = argv[++i];
+        }
+        else if( !strcmp( argv[i], "-i" ) || !strcmp( argv[i], "--imgout_format" ) )
+        {
+            imgout_format = argv[++i];
+        }
+        else if( !strcmp( argv[i], "-v" ) || !strcmp( argv[i], "--vidout_format" ) )
+        {
+            vidout_format = argv[++i];
         }
         else if( !strcmp( argv[i], "-s" ) || !strcmp( argv[i], "--show" ) )
         {
@@ -324,6 +336,10 @@ int main( int argc, char *argv[] )
     bool is_directory = fs::is_directory( reference );
     bool is_image = boost::regex_match( reference.native_file_string(), imagetypes );
     bool is_video = boost::regex_match( reference.native_file_string(), videotypes );
+    if( output_format == NULL )
+    {
+        output_format = is_video ? vidout_format : imgout_format;
+    }
 
     vector<fs::path> filelist; // for image
     vector<fs::path>::iterator filename; // for image
@@ -331,8 +347,6 @@ int main( int argc, char *argv[] )
     IplImage *img;
     if( is_directory || is_image )
     {
-        if( output_format == NULL ) output_format = imgout_format;
-
         cerr << "Now reading the directory..... ";
         if( is_directory )
         {
@@ -340,7 +354,7 @@ int main( int argc, char *argv[] )
             if( filelist.empty() )
             {
                 cerr << "No image file exist under a directory " << reference.native_file_string() << endl << endl;
-                usage( argv[0], reference, imgout_format, aviout_format );
+                usage( argv[0], reference, imgout_format, vidout_format );
                 exit(1);
             }
             filename = filelist.begin();
@@ -350,7 +364,7 @@ int main( int argc, char *argv[] )
             if( !fs::exists( reference ) )
             {
                 cerr << "The image file " << reference.native_file_string() << " does not exist." << endl << endl;
-                usage( argv[0], reference, imgout_format, aviout_format );
+                usage( argv[0], reference, imgout_format, vidout_format );
                 exit(1);
             }
             filelist = get_filelist( reference.branch_path(), imagetypes, fs::regular_file );
@@ -365,12 +379,10 @@ int main( int argc, char *argv[] )
     }
     else if( is_video )
     {
-        if( output_format == NULL ) output_format = aviout_format;
-
         if ( !fs::exists( reference ) )
         {
             cerr << "The video file " << reference.native_file_string() << " does not exist or is not readable." << endl << endl;
-            usage( argv[0], reference, imgout_format, aviout_format );
+            usage( argv[0], reference, imgout_format, vidout_format );
             exit(1);
         }
         cap = cvCaptureFromFile( reference.native_file_string().c_str() );
@@ -378,7 +390,7 @@ int main( int argc, char *argv[] )
         if( img == NULL )
         {
             cerr << "The video file " << reference.native_file_string() << " is corrupted or it's codec is not supported." << endl << endl;
-            usage( argv[0], reference, imgout_format, aviout_format );
+            usage( argv[0], reference, imgout_format, vidout_format );
             exit(1);
         }
 #if defined(WIN32) || defined(WIN64)
@@ -389,7 +401,7 @@ int main( int argc, char *argv[] )
     else
     {
         cerr << "The directory " << reference.native_file_string() << " does not exist." << endl << endl;
-        usage( argv[0], reference, imgout_format, aviout_format );
+        usage( argv[0], reference, imgout_format, vidout_format );
         exit(1);
     }
 
