@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 use strict;
+use File::Basename;
 ################################################################################
 # Convert a file format as follows:
 #   File1 Left-x Upper-y Width Height
@@ -28,10 +29,13 @@ use strict;
 my $infile;
 my $lsformat = 0;
 my $trim = 0; # trim heading 0 or not (0010 => 10)
+my $basename = 0;
 ## arguments
 for (my $i = 0; $i <= $#ARGV; $i++) {
     if ($ARGV[$i] eq "-t" || $ARGV[$i] eq "--trim" || $ARGV[$i] eq "-trim") {
         $trim = 1;
+    } elsif ($ARGV[$i] eq "-b" || $ARGV[$i] eq "--basename" || $ARGV[$i] eq "-basename") {
+        $basename = 1;
     } elsif ($ARGV[$i] eq "-ls" ) {
     	$lsformat = 1;
     } elsif (substr($ARGV[$i],0,1) eq "-") {
@@ -66,6 +70,7 @@ foreach my $line (@lines) {
     $line =~ s/\s+$//;
     my @list = split(/ /, $line, 5);
     my $fname = shift(@list);
+    if ($basename) { $fname = basename($fname); }
     if ($trim) {
         for (my $i = 0; $i <= $#list; $i++) {
             $list[$i] =~ s/^0*//;
