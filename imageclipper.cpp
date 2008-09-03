@@ -98,17 +98,17 @@ vector<fs::path> get_filelist( const fs::path& dirpath,
 * @return string
 * @todo refine more (use boost::any or use boost::regex)
 */
-string convert_format( const string& format, const string& filename, const string& extension, 
+string convert_format( const string& format, const string& dirname, const string& filename, const string& extension, 
                       int x, int y, int width, int height, int frame = 0 )
 {
     string ret = format;
     char tmp[2048];
     char intkeys[] = { 'x', 'y', 'w', 'h', 'f' };
     int  intvals[] = { x, y, width, height, frame };
-    char strkeys[] = { 'i', 'e' };
-    std::string strvals[] = { filename, extension };
+    char strkeys[] = { 'i', 'e', 'd' };
+    std::string strvals[] = { filename, extension, dirname };
     int nintkeys = 5;
-    int nstrkeys = 2;
+    int nstrkeys = 3;
     for( int i = 0; i < nintkeys + nstrkeys; i++ )
     {
         std::string::size_type start = ret.find( "%" );
@@ -251,16 +251,21 @@ void usage( const char* com, const fs::path &reference, const char* imgout_forma
     cerr << endl;
     cerr << "  Options" << endl;
     cerr << "    -o <output_format = " << imgout_format << " (image) " << endl;
-    cerr << "                        " << aviout_format << " (video)>" << endl;
-    cerr << "        Determine the output file format and path. " << endl;
-    cerr << "            %i - image (or video) file name of the original without extension" << endl;
-    cerr << "            %e - file extension of the original" << endl;
-    cerr << "            %x - x coord" << endl;
-    cerr << "            %y - y coord" << endl;
+    cerr << "            " << aviout_format << " (video)>" << endl;
+    cerr << "        Determine the output file format and path." << endl;
+    cerr << "        Format Expression)" << endl;
+    cerr << "            %d - dirname of the original" << endl;
+    cerr << "            %i - filename of the original without extension" << endl;
+    cerr << "            %e - filename extension of the original" << endl;
+    cerr << "            %x - upper-left x coord" << endl;
+    cerr << "            %y - upper-left y coord" << endl;
     cerr << "            %w - width" << endl;
     cerr << "            %h - height" << endl;
-    cerr << "            %f - frame number (for vide)" << endl;
-    cerr << "        ex) ../../image/$i_%04x_%04y_%04w_%04h.%e" << endl;
+    cerr << "            %f - frame number (for video)" << endl;
+    cerr << "        Example) ./$i_%04x_%04y_%04w_%04h.%e" << endl;
+    cerr << "            Store into software directory and use image type of the original." << endl;
+    cerr << "        Supprted Image Type)" << endl;
+    cerr << "            bmp|dib|jpeg|jpg|jpe|png|pbm|pgm|ppm|sr|ras|tiff|exr|jp2" << endl;
     cerr << "    -h" << endl;
     cerr << "    --help" << endl;
     cerr << "        Show this help" << endl;
@@ -284,8 +289,8 @@ int main( int argc, char *argv[] )
     // Initialization
     fs::path reference( "." );
     bool show = false;
-    const char* imgout_format = "%i_%04x_%04y_%04w_%04h.%e";
-    const char* aviout_format = "%i_%04f_%04x_%04y_%04w_%04h.png";
+    const char* imgout_format = "%d/imageclipper/%i.%e_%04x_%04y_%04w_%04h.png";
+    const char* aviout_format = "%d/imageclipper/%i.%e_%04f_%04x_%04y_%04w_%04h.png";
     const char* output_format = NULL;
     boost::regex imagetypes( ".*\\.(bmp|dib|jpeg|jpg|jpe|png|pbm|pgm|ppm|sr|ras|tiff|exr|jp2)$", 
         boost::regex_constants::icase );
@@ -334,7 +339,7 @@ int main( int argc, char *argv[] )
             filelist = get_filelist( reference, imagetypes, fs::regular_file );
             if( filelist.empty() )
             {
-                cerr << "No image file exist under the directory " << reference.native_file_string() << endl << endl;
+                cerr << "No image file exist under a directory " << reference.native_file_string() << endl << endl;
                 usage( argv[0], reference, imgout_format, aviout_format );
                 exit(1);
             }
@@ -417,26 +422,26 @@ int main( int argc, char *argv[] )
             region.height = min( param.img->height - region.y, region.height );
             if( region.width > 1 || region.height > 1 )
             {
-                string output_filename;
-                if( is_video )
+                fs::path path = is_video ? reference : *filename;
+                string extension = string( fs::extension( path ), 1 );
+                string stem = fs::basename( path );
+                string dirname = path.branch_path().native_file_string();
+                string output_filename = convert_format( output_format, dirname, stem, extension, 
+                    region.x, region.y, region.width, region.height, frame );
+                fs::path output_path = fs::path( output_filename );
+
+                fs::create_directories( output_path.branch_path() );
+                if( !boost::regex_match( fs::extension( output_path ), imagetypes ) )
                 {
-                    string stem = fs::basename( reference );
-                    output_filename = convert_format( output_format, stem, "none", 
-                        region.x, region.y, region.width, region.height, frame );
-                }
-                else
-                {
-                    string extension = string( fs::extension( *filename ), 1 );
-                    string stem = fs::basename( *filename );
-                    output_filename = convert_format( output_format, stem, extension, 
-                        region.x, region.y, region.width, region.height );
+                    cerr << "The image type " << fs::extension( output_path ) << " is not supported." << endl;
+                    exit(1);
                 }
                 IplImage* crop = cvCreateImage( cvSize( region.width, region.height ), img->depth, img->nChannels );
                 cvSetImageROI( img, region );
                 cvCopy( img, crop );
                 cvResetImageROI( img );
-                cvSaveImage( fs::path( output_filename ).native_file_string().c_str(), crop );
-                cout << output_filename << endl;
+                cvSaveImage( output_path.native_file_string().c_str(), crop );
+                cout << output_path.native_file_string() << endl;
                 if( show ) cvShowImage( "Cropped", crop );
                 cvReleaseImage( &crop );
             }
