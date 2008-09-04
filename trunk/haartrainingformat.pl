@@ -32,7 +32,7 @@ sub main {
     my ($infile, $lsformat, $trim, $basename) = &parse_args(@_);
     ## read
     my @lines;
-    if (defined($infile)) {
+    if ($infile ne "") {
         open(INPUT, $infile); @lines = <INPUT>; close(INPUT);
     } else {
         @lines = <STDIN>;
@@ -94,7 +94,7 @@ sub ls2typical {
 
 sub parse_args {
     my @ARGV = @_;
-    my $infile;
+    my $infile = "";
     my $lsformat = 0;
     my $trim = 0; # trim heading 0 or not (0010 => 10)
     my $basename = 0;
@@ -109,10 +109,13 @@ sub parse_args {
             &usage();
             exit;
         } elsif (substr($ARGV[$i],0,1) eq "-") {
-            print "No such a option " . $ARGV[$i] . "\n";
+            print STDERR $ARGV[$i] . ': No such option exist' . "\n";
             exit;
         } else {
             $infile = $ARGV[$i];
+            if (!-f $infile) {
+                print STDERR $infile . ': No such file exist' . "\n";
+            }
         }
     }
     return ($infile, $lsformat, $trim, $basename);
