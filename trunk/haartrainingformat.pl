@@ -25,102 +25,6 @@ use File::Basename;
 # THE SOFTWARE.
 ################################################################################
 
-&main(@ARGV);
-
-sub main {
-    ## arguments
-    my ($infile, $lsformat, $trim, $basename) = &parse_args(@_);
-    ## read
-    my @lines;
-    if ($infile ne "") {
-        open(INPUT, $infile); @lines = <INPUT>; close(INPUT);
-    } else {
-        @lines = <STDIN>;
-    }
-    ## body
-    if ($lsformat) {
-        @lines = &ls2typical(@lines, $trim);
-    }
-    @lines = &typical2haartraining(@lines, $trim, $basename);
-
-    ## output
-    print @lines;
-}
-
-sub typical2haartraining {
-    my $basename = pop(@_);
-    my $trim = pop(@_);
-    my @lines = @_;
-    my %counts = ();
-    my %coords = ();
-    foreach my $line (@lines) {
-        $line =~ s/\s+$//;
-        my @list = split(/ /, $line, 5);
-        my $fname = shift(@list);
-        if ($basename) { $fname = basename($fname); }
-        if ($trim) {
-            for (my $i = 0; $i <= $#list; $i++) {
-                $list[$i] =~ s/^0*//;
-            }
-        }
-        my $coord = ' ' . join(' ', @list);
-        if (exists($counts{$fname})) {
-            $counts{$fname}++;
-            $coords{$fname} .= $coord;
-        } else {
-            $counts{$fname} = 1;
-            $coords{$fname} = $coord;
-        }
-    }
-    my @newlines = ();
-    foreach my $fname (sort(keys(%counts))) {
-        push(@newlines, $fname . ' ' . $counts{$fname} . $coords{$fname} . "\n");
-    }
-    return @newlines;
-}
-    
-sub ls2typical {
-    my $trim = pop(@_);
-    my @lines = @_;
-    for (my $i = 0; $i <= $#lines; $i++) {
-        if ($trim) {
-            $lines[$i] =~ s/_0*(\d+)_0*(\d+)_0*(\d+)_0*(\d+)\.[^.]*$/ $1 $2 $3 $4\n/g;
-        } else {
-            $lines[$i] =~ s/_(\d+)_(\d+)_(\d+)_(\d+)\.[^.]*$/ $1 $2 $3 $4\n/g;
-        }
-    }
-    return @lines;
-}
-
-sub parse_args {
-    my @ARGV = @_;
-    my $infile = "";
-    my $lsformat = 0;
-    my $trim = 0; # trim heading 0 or not (0010 => 10)
-    my $basename = 0;
-    for (my $i = 0; $i <= $#ARGV; $i++) {
-        if ($ARGV[$i] eq "-t" || $ARGV[$i] eq "--trim" || $ARGV[$i] eq "-trim") {
-            $trim = 1;
-        } elsif ($ARGV[$i] eq "-b" || $ARGV[$i] eq "--basename" || $ARGV[$i] eq "-basename") {
-            $basename = 1;
-        } elsif ($ARGV[$i] eq "-l" || $ARGV[$i] eq "-ls" || $ARGV[$i] eq "--ls") {
-            $lsformat = 1;
-        } elsif ($ARGV[$i] eq "-h" || $ARGV[$i] eq "--help") {
-            &usage();
-            exit;
-        } elsif (substr($ARGV[$i],0,1) eq "-") {
-            print STDERR $ARGV[$i] . ': No such option exist' . "\n";
-            exit;
-        } else {
-            $infile = $ARGV[$i];
-            if (!-f $infile) {
-                print STDERR $infile . ': No such file exist' . "\n";
-            }
-        }
-    }
-    return ($infile, $lsformat, $trim, $basename);
-}
-
 sub usage {
     print 'Helper tool to convert a specific format into a haartraining format.' . "\n";
     print 'Usage: perl haartrainingformat.pl [option]... [filename]' . "\n";
@@ -155,3 +59,99 @@ sub usage {
     print '  $ \ls images/ | perl --ls --trim --basename haartrainingformal.pl' . "\n";
     print '    image.jpg 3 68 47 89 101 87 66 90 80 95 105 33 32' . "\n";
 }
+
+sub parse_args {
+    my @ARGV = @_;
+    my $infile = "";
+    my $lsformat = 0;
+    my $trim = 0; # trim heading 0 or not (0010 => 10)
+    my $basename = 0;
+    for (my $i = 0; $i <= $#ARGV; $i++) {
+        if ($ARGV[$i] eq "-t" || $ARGV[$i] eq "--trim" || $ARGV[$i] eq "-trim") {
+            $trim = 1;
+        } elsif ($ARGV[$i] eq "-b" || $ARGV[$i] eq "--basename" || $ARGV[$i] eq "-basename") {
+            $basename = 1;
+        } elsif ($ARGV[$i] eq "-l" || $ARGV[$i] eq "-ls" || $ARGV[$i] eq "--ls") {
+            $lsformat = 1;
+        } elsif ($ARGV[$i] eq "-h" || $ARGV[$i] eq "--help") {
+            &usage();
+            exit;
+        } elsif (substr($ARGV[$i],0,1) eq "-") {
+            print STDERR $ARGV[$i] . ': No such option exist' . "\n";
+            exit;
+        } else {
+            $infile = $ARGV[$i];
+            if (!-f $infile) {
+                print STDERR $infile . ': No such file exist' . "\n";
+            }
+        }
+    }
+    return ($infile, $lsformat, $trim, $basename);
+}
+
+sub ls2typical {
+    my $trim = pop(@_);
+    my @lines = @_;
+    for (my $i = 0; $i <= $#lines; $i++) {
+        if ($trim) {
+            $lines[$i] =~ s/_0*(\d+)_0*(\d+)_0*(\d+)_0*(\d+)\.[^.]*$/ $1 $2 $3 $4\n/g;
+        } else {
+            $lines[$i] =~ s/_(\d+)_(\d+)_(\d+)_(\d+)\.[^.]*$/ $1 $2 $3 $4\n/g;
+        }
+    }
+    return @lines;
+}
+
+sub typical2haartraining {
+    my $basename = pop(@_);
+    my $trim = pop(@_);
+    my @lines = @_;
+    my %counts = ();
+    my %coords = ();
+    foreach my $line (@lines) {
+        $line =~ s/\s+$//;
+        my @list = split(/ /, $line, 5);
+        my $fname = shift(@list);
+        if ($basename) { $fname = basename($fname); }
+        if ($trim) {
+            for (my $i = 0; $i <= $#list; $i++) {
+                $list[$i] =~ s/^0*//;
+            }
+        }
+        my $coord = ' ' . join(' ', @list);
+        if (exists($counts{$fname})) {
+            $counts{$fname}++;
+            $coords{$fname} .= $coord;
+        } else {
+            $counts{$fname} = 1;
+            $coords{$fname} = $coord;
+        }
+    }
+    my @newlines = ();
+    foreach my $fname (sort(keys(%counts))) {
+        push(@newlines, $fname . ' ' . $counts{$fname} . $coords{$fname} . "\n");
+    }
+    return @newlines;
+}
+    
+sub main {
+    ## arguments
+    my ($infile, $lsformat, $trim, $basename) = &parse_args(@_);
+    ## read
+    my @lines;
+    if ($infile ne "") {
+        open(INPUT, $infile); @lines = <INPUT>; close(INPUT);
+    } else {
+        @lines = <STDIN>;
+    }
+    ## body
+    if ($lsformat) {
+        @lines = &ls2typical(@lines, $trim);
+    }
+    @lines = &typical2haartraining(@lines, $trim, $basename);
+
+    ## output
+    print @lines;
+}
+
+&main(@ARGV);
