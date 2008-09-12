@@ -33,6 +33,7 @@
 #include "cvaux.h"
 #include "highgui.h"
 #include <stdio.h>
+#include <math.h>
 #include <iostream>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
@@ -177,18 +178,24 @@ string convert_format( const string& format, const string& dirname, const string
 typedef struct callback {
     const char* w_name;
     IplImage* img;
-    bool lbuttondown;
-    bool rbuttondown;
-    CvPoint point0;
-    CvPoint point1;
     CvRect region;
 } MouseStruct ;
 
+// trivial inline functions
+inline CvRect cvRectByPoint( const CvPoint& pt1, const CvPoint& pt2 )
+{
+    return cvRect( pt1.x, pt1.y, pt2.x - pt1.x, pt2.y - pt1.y );
+}
+
+inline void cvPointByRect( CvPoint& pt1, CvPoint& pt2, const CvRect& rect )
+{
+    pt1 = cvPoint( rect.x, rect.y );
+    pt2 = cvPoint( rect.x + rect.width, rect.y + rect.height );
+}
 inline void cvRectangleByRect( CvArr* img, CvRect rect, CvScalar color,
                               int thickness=1, int line_type=8, int shift=0 )
 {
-    CvPoint pt1 = cvPoint( rect.x, rect.y );
-    CvPoint pt2 = cvPoint( rect.x + rect.width, rect.y + rect.height );
+    CvPoint pt1, pt2; cvPointByRect( pt1, pt2, rect );
     cvRectangle( img, pt1, pt2, color, thickness, line_type, shift );
 }
 
@@ -200,59 +207,152 @@ inline void cvShowImageAndRectangle( const char* w_name, const IplImage* img, co
     cvReleaseImage( &cloneimg );
 }
 
+inline CvRect cvShowImageAndWatershed( const char* w_name, const IplImage* img, const CvPoint& start, const CvPoint& end )
+{
+    IplImage *markers = cvCreateImage( cvGetSize( img ), IPL_DEPTH_32S, 1 );
+
+    // Now, marker's shape is like circle
+    // Set (1 * radius) - (3 * radius) region as ambiguous region (0), intuitively
+    CvPoint center = start;
+    int radius = (int) sqrt( pow( (float)(end.x - center.x), 2 ) + pow( (float)(end.y - center.y), 2 ) );
+    cvSet( markers, cvScalarAll( 1 ) );
+    cvCircle( markers, center, 3 * radius, cvScalarAll( 0 ), CV_FILLED, 8, 0 );
+    cvCircle( markers, center, radius, cvScalarAll( 2 ), CV_FILLED, 8, 0 );
+
+    cvWatershed( img, markers );
+
+    IplImage* cloneimg = cvCloneImage( img );
+    cvCircle( cloneimg, center, radius, cvScalarAll (255), 2, 8, 0);
+    // Draw watershed marker and rectangle surrounding watershed markers
+    CvPoint minpoint = cvPoint( markers->width, markers->height );
+    CvPoint maxpoint = cvPoint( 0, 0 );
+    for (int y = 1; y < markers->height-1; y++) { // looks outer boundary is always -1. 
+        for (int x = 1; x < markers->width-1; x++) {
+            int* idx = (int *) cvPtr2D (markers, y, x, NULL);
+            if (*idx == -1) { // watershed marker -1
+                cvSet2D (cloneimg, y, x, cvScalarAll (255));
+                if( x < minpoint.x ) minpoint.x = x;
+                if( y < minpoint.y ) minpoint.y = y;
+                if( x > maxpoint.x ) maxpoint.x = x;
+                if( y > maxpoint.y ) maxpoint.y = y;
+            }
+        }
+    }
+    cvRectangle( cloneimg, minpoint, maxpoint, CV_RGB(255, 255, 0), 1 );
+    cvShowImage( w_name, cloneimg );
+    cvReleaseImage( &cloneimg );
+    return cvRectByPoint( minpoint, maxpoint );
+}
+
 /**
 * cvSetMouseCallback function
 */
 void on_mouse( int event, int x, int y, int flags, void* arg )
 {
-    MouseStruct* param = (MouseStruct*) arg;
+    MouseStruct* param             = (MouseStruct*) arg;
+    static CvPoint point0          = cvPoint( 0, 0 );
+    static bool move_rect          = false;
+    static bool resize_rect_left   = false;
+    static bool resize_rect_right  = false;
+    static bool resize_rect_top    = false;
+    static bool resize_rect_bottom = false;
 
     if( !param->img )
         return;
 
-#if defined(WIN32) || defined(WIN64) // possible to go outside image only on windows
     if( x >= 32768 ) x -= 65536; // change to negative values outside image
     if( y >= 32768 ) y -= 65536;
-#endif
 
-    if( event == CV_EVENT_LBUTTONDOWN ) 
+    if( event == CV_EVENT_LBUTTONDOWN )
     {
-        param->lbuttondown = true;
-        param->point0 = cvPoint( x, y );
+        point0 = cvPoint( x, y );
     }
-    else if( event == CV_EVENT_MOUSEMOVE && (flags & CV_EVENT_FLAG_LBUTTON) ) 
+    else if( event == CV_EVENT_MBUTTONDOWN )
     {
-        param->region.x = min( param->point0.x, x );
-        param->region.y = min( param->point0.y, y );
-        param->region.width =  abs( param->point0.x - x );
-        param->region.height = abs( param->point0.y - y );
-
-        cvShowImageAndRectangle( param->w_name, param->img, param->region );
-    }
-    else if (event == CV_EVENT_LBUTTONUP)
-    {
-        param->lbuttondown = false;
+        point0 = cvPoint( x, y );
     }
     else if( event == CV_EVENT_RBUTTONDOWN )
     {
-        param->rbuttondown = true;
-        param->point0 = cvPoint( x, y );
-    }
-    else if( event == CV_EVENT_MOUSEMOVE && (flags & CV_EVENT_FLAG_RBUTTON) )
-    {
-        param->point1 = cvPoint( x, y );
-        int move_x = x - param->point0.x;
-        int move_y = y - param->point0.y;
-        param->point0.x = x;
-        param->point0.y = y;
-        param->region.x += move_x;
-        param->region.y += move_y;
+        point0 = cvPoint( x, y );
 
-        cvShowImageAndRectangle( param->w_name, param->img, param->region );
+        if( ( param->region.x <= x && x <= param->region.x + param->region.width ) && 
+            ( param->region.y <= y && y <= param->region.y + param->region.height ) )
+        {
+            move_rect = true;
+        }
+        if( x <= param->region.x )
+        {
+            resize_rect_left = true; 
+        }
+        else if( x >= param->region.x + param->region.width )
+        {
+            resize_rect_right = true;
+        }
+        if( y <= param->region.y )
+        {
+            resize_rect_top = true; 
+        }
+        else if( y >= param->region.y + param->region.height )
+        {
+            resize_rect_bottom = true;
+        }        
+    }
+    else if( event == CV_EVENT_MOUSEMOVE )
+    {
+        if( (flags & CV_EVENT_FLAG_MBUTTON) || (flags & CV_EVENT_FLAG_SHIFTKEY && flags & CV_EVENT_FLAG_LBUTTON) )
+        {
+            param->region = cvShowImageAndWatershed( param->w_name, param->img, point0, cvPoint( x, y ) );
+        }
+        else if( flags & CV_EVENT_FLAG_LBUTTON ) 
+        {
+            param->region.x = min( point0.x, x );
+            param->region.y = min( point0.y, y );
+            param->region.width =  abs( point0.x - x );
+            param->region.height = abs( point0.y - y );
+
+            cvShowImageAndRectangle( param->w_name, param->img, param->region );
+        }
+        else if( flags & CV_EVENT_FLAG_RBUTTON )
+        {
+            if( move_rect )
+            {
+                CvPoint move = cvPoint( x - point0.x, y - point0.y );
+                param->region.x += move.x;
+                param->region.y += move.y;
+            }
+            if( resize_rect_left )
+            {
+                int move_x = x - point0.x;
+                param->region.x += move_x;
+                param->region.width -= move_x;
+            }
+            else if( resize_rect_right )
+            {
+                int move_x = x - point0.x;
+                param->region.width += move_x;
+            }
+            if( resize_rect_top )
+            {
+                int move_y = y - point0.y;
+                param->region.y += move_y;
+                param->region.height -= move_y;
+            }
+            else if( resize_rect_bottom )
+            {
+                int move_y = y - point0.y;
+                param->region.height += move_y;
+            }
+            cvShowImageAndRectangle( param->w_name, param->img, param->region );
+            point0 = cvPoint( x, y );
+        }
     }
     else if( event == CV_EVENT_RBUTTONUP )
     {
-        param->rbuttondown = false;
+        move_rect          = false;
+        resize_rect_left   = false;
+        resize_rect_right  = false;
+        resize_rect_top    = false;
+        resize_rect_bottom = false;
     }
 }
 
@@ -429,7 +529,7 @@ int main( int argc, char *argv[] )
     }
 
     // User interface
-    MouseStruct param = { w_name, img, false, false, cvPoint(0,0), cvPoint(0,0), cvRect(0,0,0,0) };
+    MouseStruct param = { w_name, img, cvRect(0,0,0,0) };
     // KeyStruct keystruct = { w_name, img, reference, cap, filename, filelist, param.region }
     cvNamedWindow( param.w_name, CV_WINDOW_AUTOSIZE );
     cvShowImage( param.w_name, param.img );
