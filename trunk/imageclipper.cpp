@@ -175,11 +175,17 @@ string convert_format( const string& format, const string& dirname, const string
     return ret;
 }
 
-typedef struct callback {
+typedef struct MyMouseStruct {
     const char* w_name;
     IplImage* img;
     CvRect region;
-} MouseStruct ;
+} MyMouseStruct ;
+
+inline MyMouseStruct myMouseStruct( const char* w_name, IplImage* img, CvRect& region )
+{
+    MyMouseStruct m = { w_name, img, region };
+    return m;
+}
 
 // trivial inline functions
 inline CvRect cvRectByPoint( const CvPoint& pt1, const CvPoint& pt2 )
@@ -249,7 +255,7 @@ inline CvRect cvShowImageAndWatershed( const char* w_name, const IplImage* img, 
 */
 void on_mouse( int event, int x, int y, int flags, void* arg )
 {
-    MouseStruct* param             = (MouseStruct*) arg;
+    MyMouseStruct* param           = (MyMouseStruct*) arg;
     static CvPoint point0          = cvPoint( 0, 0 );
     static bool move_rect          = false;
     static bool resize_rect_left   = false;
@@ -342,6 +348,26 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
                 int move_y = y - point0.y;
                 param->region.height += move_y;
             }
+
+            // assure width is positive
+            if( param->region.width <= 0 )
+            {
+                param->region.x += param->region.width;
+                param->region.width *= -1;
+                bool tmp = resize_rect_right;
+                resize_rect_right = resize_rect_left;
+                resize_rect_left  = tmp;
+            }
+            // assure height is positive
+            if( param->region.height <= 0 )
+            {
+                param->region.y += param->region.height;
+                param->region.height *= -1;
+                bool tmp = resize_rect_top;
+                resize_rect_top    = resize_rect_bottom;
+                resize_rect_bottom = tmp;
+            }
+
             cvShowImageAndRectangle( param->w_name, param->img, param->region );
             point0 = cvPoint( x, y );
         }
@@ -413,7 +439,7 @@ void usage( const char* com, const fs::path &reference, const char* imgout_forma
 
 int main( int argc, char *argv[] )
 {
-    // Initialization
+    //// Initialization
     fs::path reference( "." );
     bool show = false;
     const char* imgout_format = "%d/imageclipper/%i.%e_%04x_%04y_%04w_%04h.png";
@@ -425,7 +451,7 @@ int main( int argc, char *argv[] )
         boost::regex_constants::icase ); 
     const char* w_name = "<S> Save <F> Forward <SPACE> s and f <B> Backward <ESC> Exit";
 
-    // Arguments
+    //// Arguments
     for( int i = 1; i < argc; i++ )
     {
         if( !strcmp( argv[i], "-h" ) || !strcmp( argv[i], "--help" ) )
@@ -455,7 +481,7 @@ int main( int argc, char *argv[] )
         }
     }
 
-    // Retreive image files or video
+    //// Initial argument check
     bool is_directory = fs::is_directory( reference );
     bool is_image = boost::regex_match( reference.native_file_string(), imagetypes );
     bool is_video = boost::regex_match( reference.native_file_string(), videotypes );
@@ -470,7 +496,7 @@ int main( int argc, char *argv[] )
     IplImage *img;
     if( is_directory || is_image )
     {
-        cerr << "Now reading the directory..... ";
+        cerr << "Now reading a directory..... ";
         if( is_directory )
         {
             filelist = get_filelist( reference, imagetypes, fs::regular_file );
@@ -528,12 +554,12 @@ int main( int argc, char *argv[] )
         exit(1);
     }
 
-    // User interface
-    MouseStruct param = { w_name, img, cvRect(0,0,0,0) };
-    // KeyStruct keystruct = { w_name, img, reference, cap, filename, filelist, param.region }
-    cvNamedWindow( param.w_name, CV_WINDOW_AUTOSIZE );
-    cvShowImage( param.w_name, param.img );
-    cvSetMouseCallback( param.w_name, on_mouse, (void *)&param );
+    //// User interface
+    MyMouseStruct* param = &myMouseStruct( w_name, img, cvRect(0,0,0,0) );
+
+    cvNamedWindow( param->w_name, CV_WINDOW_AUTOSIZE );
+    cvShowImage( param->w_name, param->img );
+    cvSetMouseCallback( param->w_name, on_mouse, (void *)param );
     if( show ) cvNamedWindow( "Cropped", CV_WINDOW_AUTOSIZE );
 
     int frame = 1; // for video
@@ -542,7 +568,7 @@ int main( int argc, char *argv[] )
         int key = cvWaitKey( 0 );
         if( key == 's' || key == 32 ) // SPACE
         {
-            CvRect region = param.region;
+            CvRect region = param->region;
             if( region.x < 0 )
             {
                 region.width += region.x;
@@ -553,8 +579,8 @@ int main( int argc, char *argv[] )
                 region.height += region.y;
                 region.y = 0;
             }
-            region.width = min( param.img->width - region.x, region.width );
-            region.height = min( param.img->height - region.y, region.height );
+            region.width = min( param->img->width - region.x, region.width );
+            region.height = min( param->img->height - region.y, region.height );
             if( region.width > 1 || region.height > 1 )
             {
                 fs::path path = is_video ? reference : *filename;
@@ -588,23 +614,23 @@ int main( int argc, char *argv[] )
                 IplImage* tmpimg;
                 if( tmpimg = cvQueryFrame( cap ) )
                 {
-                    param.img = tmpimg;
+                    param->img = tmpimg;
 #if defined(WIN32) || defined(WIN64)
-                    param.img->origin = 0;
-                    cvFlip( param.img );
+                    param->img->origin = 0;
+                    cvFlip( param->img );
 #endif
                     frame++;
-                    cvShowImageAndRectangle( param.w_name, param.img, param.region );
+                    cvShowImageAndRectangle( param->w_name, param->img, param->region );
                 }
             }
             else
             {
                 if( filename + 1 != filelist.end() )
                 {
-                    cvReleaseImage( &param.img );
+                    cvReleaseImage( &param->img );
                     filename++;
-                    param.img = cvLoadImage( filename->native_file_string().c_str() );
-                    cvShowImageAndRectangle( param.w_name, param.img, param.region );
+                    param->img = cvLoadImage( filename->native_file_string().c_str() );
+                    cvShowImageAndRectangle( param->w_name, param->img, param->region );
                 }
             }
         }
@@ -614,10 +640,10 @@ int main( int argc, char *argv[] )
             {
                 if( filename != filelist.begin() ) 
                 {
-                    cvReleaseImage( &param.img );
+                    cvReleaseImage( &param->img );
                     filename--;
-                    param.img = cvLoadImage( filename->native_file_string().c_str() );
-                    cvShowImageAndRectangle( param.w_name, param.img, param.region );
+                    param->img = cvLoadImage( filename->native_file_string().c_str() );
+                    cvShowImageAndRectangle( param->w_name, param->img, param->region );
                 }
             }
         }
@@ -626,8 +652,7 @@ int main( int argc, char *argv[] )
             break;
         }
     }
-    cvDestroyWindow( param.w_name );
-    cvReleaseImage( &param.img );
+    cvDestroyWindow( param->w_name );
     if( show ) cvDestroyWindow( "Cropped" );
 }
 
