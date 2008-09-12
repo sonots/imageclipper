@@ -395,8 +395,9 @@ void usage( const char* com, const fs::path &reference, const char* imgout_forma
     cerr << "  <reference = " << reference << ">" << endl;
     cerr << "    <reference> would be a directory or an image or a video filename." << endl;
     cerr << "    For a directory, image files in the directory will be read sequentially." << endl;
-    cerr << "    For an image, it is started to read directory from this image file." << endl;
-    cerr << "    For a video, frames in the video are read sequentially." << endl;
+    cerr << "    For an image (a file having supported image type extensions listed below), " << endl;
+    cerr << "    it starts to read a directory from the specified image file. " << endl;
+    cerr << "    For a video (a file except images), the video is read." << endl;
     cerr << endl;
     cerr << "  Options" << endl;
     cerr << "    -f <output_format = imgout_format or vidout_format>" << endl;
@@ -413,8 +414,6 @@ void usage( const char* com, const fs::path &reference, const char* imgout_forma
     cerr << "            %f - frame number (for video)" << endl;
     cerr << "        Example) ./$i_%04x_%04y_%04w_%04h.%e" << endl;
     cerr << "            Store into software directory and use image type of the original." << endl;
-    cerr << "        Supported Image Type)" << endl;
-    cerr << "            bmp|dib|jpeg|jpg|jpe|png|pbm|pgm|ppm|sr|ras|tiff|exr|jp2" << endl;
     cerr << "    -i <imgout_format = " << imgout_format << ">" << endl;
     cerr << "        Determine the output file path format for image inputs." << endl;
     cerr << "    -v <vidout_format = " << vidout_format << ">" << endl;
@@ -425,6 +424,9 @@ void usage( const char* com, const fs::path &reference, const char* imgout_forma
     cerr << "    -s" << endl;
     cerr << "    --show" << endl;
     cerr << "        Show clipped image" << endl;
+    cerr << endl;
+    cerr << "  Supported Image Types" << endl;
+    cerr << "      bmp|dib|jpeg|jpg|jpe|png|pbm|pgm|ppm|sr|ras|tiff|exr|jp2" << endl;
     cerr << endl;
     cerr << "Application Usage:" << endl;
     cerr << "    Select a region by dragging the left mouse button." << endl;
@@ -447,8 +449,6 @@ int main( int argc, char *argv[] )
     const char* output_format = NULL;
     boost::regex imagetypes( ".*\\.(bmp|dib|jpeg|jpg|jpe|png|pbm|pgm|ppm|sr|ras|tiff|exr|jp2)$", 
         boost::regex_constants::icase );
-    boost::regex videotypes( ".*\\.(avi|mpg|mpeg)$", // readablility depends on codec
-        boost::regex_constants::icase ); 
     const char* w_name = "<S> Save <F> Forward <SPACE> s and f <B> Backward <ESC> Exit";
 
     //// Arguments
@@ -484,7 +484,7 @@ int main( int argc, char *argv[] )
     //// Initial argument check
     bool is_directory = fs::is_directory( reference );
     bool is_image = boost::regex_match( reference.native_file_string(), imagetypes );
-    bool is_video = boost::regex_match( reference.native_file_string(), videotypes );
+    bool is_video = !is_directory & !is_image;
     if( output_format == NULL )
     {
         output_format = is_video ? vidout_format : imgout_format;
@@ -530,7 +530,7 @@ int main( int argc, char *argv[] )
     {
         if ( !fs::exists( reference ) )
         {
-            cerr << "The video file " << reference.native_file_string() << " does not exist or is not readable." << endl << endl;
+            cerr << "The file " << reference.native_file_string() << " does not exist or is not readable." << endl << endl;
             usage( argv[0], reference, imgout_format, vidout_format );
             exit(1);
         }
@@ -538,7 +538,7 @@ int main( int argc, char *argv[] )
         img = cvQueryFrame( cap );
         if( img == NULL )
         {
-            cerr << "The video file " << reference.native_file_string() << " is corrupted or it's codec is not supported." << endl << endl;
+            cerr << "The file " << reference.native_file_string() << " was assumed as a video, but not loadable." << endl << endl;
             usage( argv[0], reference, imgout_format, vidout_format );
             exit(1);
         }
