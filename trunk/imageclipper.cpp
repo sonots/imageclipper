@@ -266,8 +266,8 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
     if( !param->img )
         return;
 
-    if( x >= 32768 ) x -= 65536; // change to negative values outside image
-    if( y >= 32768 ) y -= 65536;
+    if( x >= 32768 ) x -= 65536; // change left outsite to negative
+    if( y >= 32768 ) y -= 65536; // change top outside to negative
 
     if( event == CV_EVENT_LBUTTONDOWN )
     {
