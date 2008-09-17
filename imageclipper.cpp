@@ -310,8 +310,8 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
         if( !resize_watershed && !move_watershed )
         {
             showing_watershed = false;
-            if( ( param->region.x <= x && x <= param->region.x + param->region.width ) && 
-                ( param->region.y <= y && y <= param->region.y + param->region.height ) )
+            if( ( param->region.x < x && x < param->region.x + param->region.width ) && 
+                ( param->region.y < y && y < param->region.y + param->region.height ) )
             {
                 move_rect = true;
             }
