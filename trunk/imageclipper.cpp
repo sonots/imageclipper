@@ -1,26 +1,26 @@
 /**
- * The MIT License
- * 
- * Copyright (c) 2008, Naotoshi Seo <sonots(at)sonots.com>
- * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
+* The MIT License
+* 
+* Copyright (c) 2008, Naotoshi Seo <sonots(at)sonots.com>
+* 
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+* 
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+* THE SOFTWARE.
+*/
 #ifdef _MSC_VER // MS Visual Studio
 #pragma warning(disable:4996)
 #pragma comment(lib, "cv.lib")
@@ -46,16 +46,11 @@ namespace fs = boost::filesystem;
 /**
 * List Files in a directory
 *
-* @param const boost::filesystem::path &dirpath 
-*     path to the target directory
-* @param [const boost::regex regex = boost::regex(".*")] 
-*     regular expression (instead of wild cards)
-* @param [boost::filesystem::file_type file_type = boost::filesystem::type_unknown] 
-*     list only specified file_type. The default is for all
-* @return vector<boost::filesystem::path> 
-*     vector of file list
-* @requirements 
-*     boost::filesystem, boost::regex, std::vector, std::string 
+* @param dirpath Path to the target directory
+* @param [regex = ".*"] Regular expression (instead of wild cards)
+* @param [file_type = type_unknown] List only specified file_type. The default is for all
+* @return vector<boost::filesystem::path> Vector of file list
+* @requirements boost::filesystem, boost::regex, std::vector, std::string 
 *
 * Memo: boost::filesystem::path path.native_file_string().c_str()
 */
@@ -117,8 +112,7 @@ vector<fs::path> get_filelist( const fs::path& dirpath,
 * %h => height
 * %f => frame number (for video file)
 *
-* @param const string& format 
-*     the format string
+* @param format The format string
 * @return string
 * @todo refine more (use boost::any or use boost::regex)
 */
@@ -187,7 +181,7 @@ inline MyMouseStruct myMouseStruct( const char* w_name, IplImage* img, CvRect& r
     return m;
 }
 
-// trivial inline functions
+///// Trivial Inline Functions ////
 inline CvRect cvRectByPoint( const CvPoint& pt1, const CvPoint& pt2 )
 {
     return cvRect( pt1.x, pt1.y, pt2.x - pt1.x, pt2.y - pt1.y );
