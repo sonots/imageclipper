@@ -170,6 +170,11 @@ string convert_format( const string& format, const string& dirname, const string
 }
 
 ///// Trivial Inline Functions ////
+inline void cvPrintRect( CvRect &rect )
+{
+    printf( "%d %d %d %d\n", rect.x, rect.y, rect.width, rect.height );
+}
+
 inline double cvPointNorm( CvPoint p1, CvPoint p2, int norm_type = CV_L2 )
 {
     // support only sqrt( sum( (p1 - p2)^2 ) )
@@ -178,9 +183,9 @@ inline double cvPointNorm( CvPoint p1, CvPoint p2, int norm_type = CV_L2 )
 
 inline void cvShowImageAndRectangle( const char* w_name, const IplImage* img, const CvRect& rect )
 {
+    IplImage* clone = cvCloneImage( img );
     CvPoint pt1 = cvPoint( rect.x, rect.y );
     CvPoint pt2 = cvPoint( rect.x + rect.width, rect.y + rect.height );
-    IplImage* clone = cvCloneImage( img );
     cvRectangle( clone, pt1, pt2, CV_RGB(255, 255, 0), 1 );
     cvShowImage( w_name, clone );
     cvReleaseImage( &clone );
@@ -428,7 +433,7 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
 * Print out usage
 */
 void usage( const char* com, const fs::path &reference, const char* imgout_format,
-           const char* vidout_format )
+           const char* vidout_format, const CvRect &initial_rect )
 {
     cerr << "ImageClipper - image clipping helper tool." << endl;
     cerr << "Command Usage: " << fs::path( com ).leaf();
@@ -459,6 +464,9 @@ void usage( const char* com, const fs::path &reference, const char* imgout_forma
     cerr << "        Determine the output file path format for image inputs." << endl;
     cerr << "    -v <vidout_format = " << vidout_format << ">" << endl;
     cerr << "        Determine the output file path format for a video input." << endl;
+    cerr << "    -r <initial_rect = " << initial_rect.x << " " << initial_rect.y << " "
+        << initial_rect.width << " " << initial_rect.height << ">" << endl;
+    cerr << "        Determine the initial rectnagle (left_x top_y width height)." << endl;
     cerr << "    -h" << endl;
     cerr << "    --help" << endl;
     cerr << "        Show this help" << endl;
@@ -491,13 +499,14 @@ int main( int argc, char *argv[] )
     boost::regex imagetypes( ".*\\.(bmp|dib|jpeg|jpg|jpe|png|pbm|pgm|ppm|sr|ras|tiff|exr|jp2)$", 
         boost::regex_constants::icase );
     const char* w_name = "<S> Save <F> Forward <SPACE> s and f <B> Backward <ESC> Exit";
+    CvRect initial_rect = cvRect( 0, 0, 0, 0 );
 
     //// Arguments
     for( int i = 1; i < argc; i++ )
     {
         if( !strcmp( argv[i], "-h" ) || !strcmp( argv[i], "--help" ) )
         {
-            usage( argv[0], reference, imgout_format, vidout_format );
+            usage( argv[0], reference, imgout_format, vidout_format, initial_rect );
             return 0;
         } 
         else if( !strcmp( argv[i], "-f" ) || !strcmp( argv[i], "--output_format" ) )
@@ -511,6 +520,13 @@ int main( int argc, char *argv[] )
         else if( !strcmp( argv[i], "-v" ) || !strcmp( argv[i], "--vidout_format" ) )
         {
             vidout_format = argv[++i];
+        }
+        else if( !strcmp( argv[i], "-r" ) || !strcmp( argv[i], "--initial_rect" ) )
+        {
+            initial_rect.x      = atoi( argv[++i] );
+            initial_rect.y      = atoi( argv[++i] );
+            initial_rect.width  = atoi( argv[++i] );
+            initial_rect.height = atoi( argv[++i] );
         }
         else if( !strcmp( argv[i], "-s" ) || !strcmp( argv[i], "--show" ) )
         {
@@ -544,7 +560,7 @@ int main( int argc, char *argv[] )
             if( filelist.empty() )
             {
                 cerr << "No image file exist under a directory " << reference.native_file_string() << endl << endl;
-                usage( argv[0], reference, imgout_format, vidout_format );
+                usage( argv[0], reference, imgout_format, vidout_format, initial_rect );
                 exit(1);
             }
             filename = filelist.begin();
@@ -554,7 +570,7 @@ int main( int argc, char *argv[] )
             if( !fs::exists( reference ) )
             {
                 cerr << "The image file " << reference.native_file_string() << " does not exist." << endl << endl;
-                usage( argv[0], reference, imgout_format, vidout_format );
+                usage( argv[0], reference, imgout_format, vidout_format, initial_rect );
                 exit(1);
             }
             filelist = get_filelist( reference.branch_path(), imagetypes, fs::regular_file );
@@ -572,7 +588,7 @@ int main( int argc, char *argv[] )
         if ( !fs::exists( reference ) )
         {
             cerr << "The file " << reference.native_file_string() << " does not exist or is not readable." << endl << endl;
-            usage( argv[0], reference, imgout_format, vidout_format );
+            usage( argv[0], reference, imgout_format, vidout_format, initial_rect );
             exit(1);
         }
         cap = cvCaptureFromFile( reference.native_file_string().c_str() );
@@ -580,7 +596,7 @@ int main( int argc, char *argv[] )
         if( img == NULL )
         {
             cerr << "The file " << reference.native_file_string() << " was assumed as a video, but not loadable." << endl << endl;
-            usage( argv[0], reference, imgout_format, vidout_format );
+            usage( argv[0], reference, imgout_format, vidout_format, initial_rect );
             exit(1);
         }
 #if defined(WIN32) || defined(WIN64)
@@ -591,14 +607,17 @@ int main( int argc, char *argv[] )
     else
     {
         cerr << "The directory " << reference.native_file_string() << " does not exist." << endl << endl;
-        usage( argv[0], reference, imgout_format, vidout_format );
+        usage( argv[0], reference, imgout_format, vidout_format, initial_rect );
         exit(1);
     }
 
     //// Mouse and Key callback
-    ImageClipperMouse* param = &imageClipperMouse( w_name, img, cvRect(0,0,0,0), cvRect(0,0,0,0) );
+    ImageClipperMouse* param = &imageClipperMouse( w_name, img, initial_rect, cvRect(0,0,0,0) );
     cvNamedWindow( param->w_name, CV_WINDOW_AUTOSIZE );
-    cvShowImage( param->w_name, param->img );
+    if( param->rect.width != 0 && param->rect.height != 0 )
+        cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+    else
+        cvShowImage( param->w_name, param->img );
     cvSetMouseCallback( param->w_name, on_mouse, (void *)param );
     if( show ) cvNamedWindow( "Cropped", CV_WINDOW_AUTOSIZE );
 
@@ -724,6 +743,67 @@ int main( int argc, char *argv[] )
         else if( key == 'q' || key == 27 ) // 27 is ESC
         {
             break;
+        }
+        // Rectangle Movement (Vi like hotkeys)
+        else if( key == 'h' ) // Left
+        {
+            param->rect.x = max( 0, param->rect.x - 1 );
+            if( param->rect.width != 0 )
+            {
+                cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+            }
+        }
+        else if( key == 'j' ) // Down
+        {
+            param->rect.y = min( param->img->height - param->rect.height, param->rect.y + 1);
+            if( param->rect.width != 0 )
+            {
+                cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+            }
+        }
+        else if( key == 'k' ) // Up
+        {
+            param->rect.y = max( 0, param->rect.y - 1 );
+            if( param->rect.width != 0 )
+            {
+                cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+            }
+        }
+        else if( key == 'l' ) // Right
+        {
+            param->rect.x = min( param->img->width - param->rect.width, param->rect.x + 1);
+            if( param->rect.width != 0 )
+            {
+                cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+            }
+        }
+        else if( key == 'r' ) // Rotate // reserved
+        {
+        }
+        if( key == 'e' || key == 'w' ) // Expansion and Shrink so that ratio does not change
+        {
+            if( param->rect.height != 0 && param->rect.width != 0 ) 
+            {
+                int gcd, a = param->rect.width, b = param->rect.height;
+                while( 1 )
+                {
+                    a = a % b;
+                    if( a == 0 ) { gcd = b; break; }
+                    b = b % a;
+                    if( b == 0 ) { gcd = a; break; }
+                }
+                int ratio_width = param->rect.width / gcd;
+                int ratio_height = param->rect.height / gcd;
+                if( key == 'e' ) gcd += 1;
+                else if( key == 'w' ) gcd -= 1;
+                if( gcd > 0 )
+                {
+                    cout << ratio_width << ":" << ratio_height << " * " << gcd << endl;
+                    param->rect.width = ratio_width * gcd;
+                    param->rect.height = ratio_height * gcd; 
+                    cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+                }
+            }
         }
     }
     cvDestroyWindow( param->w_name );
