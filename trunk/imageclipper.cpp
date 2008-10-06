@@ -170,9 +170,9 @@ string convert_format( const string& format, const string& dirname, const string
 }
 
 ///// Trivial Inline Functions ////
-inline void cvPrintRect( CvRect* rect )
+inline void cvPrintRect( CvRect &rect )
 {
-    printf( "%d %d %d %d\n", rect->x, rect->y, rect->width, rect->height );
+    printf( "%d %d %d %d\n", rect.x, rect.y, rect.width, rect.height );
 }
 
 inline double cvPointNorm( CvPoint p1, CvPoint p2, int norm_type = CV_L2 )
@@ -181,22 +181,22 @@ inline double cvPointNorm( CvPoint p1, CvPoint p2, int norm_type = CV_L2 )
     return sqrt( pow( (double)p2.x - p1.x, 2 ) + pow( (double)p2.y - p1.y, 2 ) );
 }
 
-inline void cvShowImageAndRectangle( const char* w_name, const IplImage* img, const CvRect* rect )
+inline void cvShowImageAndRectangle( const char* w_name, const IplImage* img, const CvRect& rect )
 {
     IplImage* clone = cvCloneImage( img );
-    CvPoint pt1 = cvPoint( rect->x, rect->y );
-    CvPoint pt2 = cvPoint( rect->x + rect->width, rect->y + rect->height );
+    CvPoint pt1 = cvPoint( rect.x, rect.y );
+    CvPoint pt2 = cvPoint( rect.x + rect.width, rect.y + rect.height );
     cvRectangle( clone, pt1, pt2, CV_RGB(255, 255, 0), 1 );
     cvShowImage( w_name, clone );
     cvReleaseImage( &clone );
 }
 
-inline CvRect cvShowImageAndWatershed( const char* w_name, const IplImage* img, const CvRect* circle )
+inline CvRect cvShowImageAndWatershed( const char* w_name, const IplImage* img, const CvRect &circle )
 {
     IplImage* clone = cvCloneImage( img );
     IplImage* markers  = cvCreateImage( cvGetSize( clone ), IPL_DEPTH_32S, 1 );
-    CvPoint center = cvPoint( circle->x, circle->y );
-    int radius = circle->width;
+    CvPoint center = cvPoint( circle.x, circle.y );
+    int radius = circle.width;
 
     // Set watershed markers. Now, marker's shape is like circle
     // Set (1 * radius) - (3 * radius) region as ambiguous region (0), intuitively
@@ -233,25 +233,30 @@ inline CvRect cvShowImageAndWatershed( const char* w_name, const IplImage* img, 
 /**
 * A structure for cvSetMouseCallback function
 */
+/*
 typedef struct ImageClipperMouse {
     const char* w_name;
     IplImage* img;
-    CvRect* rect;
-    CvRect* circle; // use x, y for center, width as radius. width == 0 means watershed is off
+    CvRect rect;
+    CvRect circle; // use x, y for center, width as radius. width == 0 means watershed is off
 } ImageClipperMouse ;
 
-inline ImageClipperMouse imageClipperMouse( const char* w_name, IplImage* img, CvRect* rect, CvRect* circle )
+inline ImageClipperMouse imageClipperMouse( const char* w_name, IplImage* img, CvRect& rect, CvRect& circle )
 {
     ImageClipperMouse m = { w_name, img, rect, circle };
     return m;
-}
+}*/
+const char* param_w_name;
+IplImage* param_img;
+CvRect param_rect;
+CvRect param_circle;
 
 /**
 * cvSetMouseCallback function
 */
 void on_mouse( int event, int x, int y, int flags, void* arg )
 {
-    ImageClipperMouse* param       = (ImageClipperMouse*) arg;
+    //ImageClipperMouse* param       = (ImageClipperMouse*) arg;
     static CvPoint point0          = cvPoint( 0, 0 );
     static bool move_rect          = false;
     static bool resize_rect_left   = false;
@@ -261,7 +266,7 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
     static bool move_watershed     = false;
     static bool resize_watershed   = false;
 
-    if( !param->img )
+    if( !param_img )
         return;
 
     if( x >= 32768 ) x -= 65536; // change left outsite to negative
@@ -271,36 +276,32 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
     if( event == CV_EVENT_MBUTTONDOWN || 
         ( event == CV_EVENT_LBUTTONDOWN && flags & CV_EVENT_FLAG_SHIFTKEY ) ) // initialization
     {
-        param->circle->x = x;
-        param->circle->y = y;
-        cvShowImage( param->w_name, param->img );
+        param_circle.x = x;
+        param_circle.y = y;
+        cvShowImage( param_w_name, param_img );
     }
     else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_MBUTTON ||
         ( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_LBUTTON && flags & CV_EVENT_FLAG_SHIFTKEY ) )
     {
-        param->circle->width = (int) cvPointNorm( cvPoint( param->circle->x, param->circle->y ), cvPoint( x, y ) );
-        CvRect rect = cvShowImageAndWatershed( param->w_name, param->img, param->circle );
-        param->rect->x = rect.x;
-        param->rect->y = rect.y;
-        param->rect->width = rect.width;
-        param->rect->height = rect.height;
+        param_circle.width = (int) cvPointNorm( cvPoint( param_circle.x, param_circle.y ), cvPoint( x, y ) );
+        param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
     }
 
     // LBUTTON is to draw rectangle
     else if( event == CV_EVENT_LBUTTONDOWN ) // initialization
     {
         point0 = cvPoint( x, y );
-        param->circle->width = 0; // disable watershed
-        cvShowImage( param->w_name, param->img );
+        param_circle.width = 0; // disable watershed
+        cvShowImage( param_w_name, param_img );
     }
     else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_LBUTTON )
     {
-        param->rect->x = min( point0.x, x );
-        param->rect->y = min( point0.y, y );
-        param->rect->width =  abs( point0.x - x );
-        param->rect->height = abs( point0.y - y );
-        cvShowImageAndRectangle( param->w_name, param->img, param->rect );
-        //cvPrintRect( param->rect );
+        param_rect.x = min( point0.x, x );
+        param_rect.y = min( point0.y, y );
+        param_rect.width =  abs( point0.x - x );
+        param_rect.height = abs( point0.y - y );
+
+        cvShowImageAndRectangle( param_w_name, param_img, param_rect );
     }
 
     // RBUTTON to move rentangle or watershed marker
@@ -308,69 +309,61 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
     {
         point0 = cvPoint( x, y );
 
-        if( param->circle->width != 0 )
+        if( param_circle.width != 0 )
         {
-            CvPoint center = cvPoint( param->circle->x, param->circle->y );
+            CvPoint center = cvPoint( param_circle.x, param_circle.y );
             int radius = (int) cvPointNorm( center, point0 );
-            if( param->circle->width - 1 <= radius && radius <= param->circle->width )
+            if( param_circle.width - 1 <= radius && radius <= param_circle.width )
             {
                 resize_watershed = true;
             }
-            else if( radius <= param->circle->width )
+            else if( radius <= param_circle.width )
             {
                 move_watershed = true;
             }
         }
         if( !resize_watershed && !move_watershed )
         {
-            param->circle->width = 0;
-            if( ( param->rect->x < x && x < param->rect->x + param->rect->width ) && 
-                ( param->rect->y < y && y < param->rect->y + param->rect->height ) )
+            param_circle.width = 0;
+            if( ( param_rect.x < x && x < param_rect.x + param_rect.width ) && 
+                ( param_rect.y < y && y < param_rect.y + param_rect.height ) )
             {
                 move_rect = true;
             }
-            if( x <= param->rect->x )
+            if( x <= param_rect.x )
             {
                 resize_rect_left = true; 
             }
-            else if( x >= param->rect->x + param->rect->width )
+            else if( x >= param_rect.x + param_rect.width )
             {
                 resize_rect_right = true;
             }
-            if( y <= param->rect->y )
+            if( y <= param_rect.y )
             {
                 resize_rect_top = true; 
             }
-            else if( y >= param->rect->y + param->rect->height )
+            else if( y >= param_rect.y + param_rect.height )
             {
                 resize_rect_bottom = true;
             }
         }
     }
-    else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_RBUTTON && param->circle->width != 0 ) // Move or resize for watershed
+    else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_RBUTTON && param_circle.width != 0 ) // Move or resize for watershed
     {
         if( move_watershed )
         {
             CvPoint move = cvPoint( x - point0.x, y - point0.y );
-            param->circle->x += move.x;
-            param->circle->y += move.y;
+            param_circle.x += move.x;
+            param_circle.y += move.y;
 
-            CvRect rect = cvShowImageAndWatershed( param->w_name, param->img, param->circle );
-            param->rect->x = rect.x;
-            param->rect->y = rect.y;
-            param->rect->width = rect.width;
-            param->rect->height = rect.height;
+            param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
 
             point0 = cvPoint( x, y );
         }
         else if( resize_watershed )
         {
-            param->circle->width = (int) cvPointNorm( cvPoint( param->circle->x, param->circle->y ), cvPoint( x, y ) );
-            CvRect rect = cvShowImageAndWatershed( param->w_name, param->img, param->circle );
-            param->rect->x = rect.x;
-            param->rect->y = rect.y;
-            param->rect->width = rect.width;
-            param->rect->height = rect.height;
+            param_circle.width = (int) cvPointNorm( cvPoint( param_circle.x, param_circle.y ), cvPoint( x, y ) );
+            param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
         }
     }
     else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_RBUTTON ) // Move or resize for rectangle
@@ -378,52 +371,52 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
         if( move_rect )
         {
             CvPoint move = cvPoint( x - point0.x, y - point0.y );
-            param->rect->x += move.x;
-            param->rect->y += move.y;
+            param_rect.x += move.x;
+            param_rect.y += move.y;
         }
         if( resize_rect_left )
         {
             int move_x = x - point0.x;
-            param->rect->x += move_x;
-            param->rect->width -= move_x;
+            param_rect.x += move_x;
+            param_rect.width -= move_x;
         }
         else if( resize_rect_right )
         {
             int move_x = x - point0.x;
-            param->rect->width += move_x;
+            param_rect.width += move_x;
         }
         if( resize_rect_top )
         {
             int move_y = y - point0.y;
-            param->rect->y += move_y;
-            param->rect->height -= move_y;
+            param_rect.y += move_y;
+            param_rect.height -= move_y;
         }
         else if( resize_rect_bottom )
         {
             int move_y = y - point0.y;
-            param->rect->height += move_y;
+            param_rect.height += move_y;
         }
 
         // assure width is positive
-        if( param->rect->width <= 0 )
+        if( param_rect.width <= 0 )
         {
-            param->rect->x += param->rect->width;
-            param->rect->width *= -1;
+            param_rect.x += param_rect.width;
+            param_rect.width *= -1;
             bool tmp = resize_rect_right;
             resize_rect_right = resize_rect_left;
             resize_rect_left  = tmp;
         }
         // assure height is positive
-        if( param->rect->height <= 0 )
+        if( param_rect.height <= 0 )
         {
-            param->rect->y += param->rect->height;
-            param->rect->height *= -1;
+            param_rect.y += param_rect.height;
+            param_rect.height *= -1;
             bool tmp = resize_rect_top;
             resize_rect_top    = resize_rect_bottom;
             resize_rect_bottom = tmp;
         }
 
-        cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+        cvShowImageAndRectangle( param_w_name, param_img, param_rect );
         point0 = cvPoint( x, y );
     }
 
@@ -438,7 +431,6 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
         move_watershed     = false;
         resize_watershed   = false;
     }
-    //cvPrintRect( param->rect );
 }
 
 
@@ -625,47 +617,51 @@ int main( int argc, char *argv[] )
     }
 
     //// Mouse and Key callback
-    ImageClipperMouse* param = &imageClipperMouse( w_name, img, &initial_rect, &cvRect(0,0,0,0) );
-    cvNamedWindow( param->w_name, CV_WINDOW_AUTOSIZE );
-    if( param->rect->width != 0 && param->rect->height != 0 )
-        cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+    //ImageClipperMouse* param = &imageClipperMouse( w_name, img, initial_rect, cvRect(0,0,0,0) );
+    param_w_name = w_name;
+    param_img = img;
+    param_rect = initial_rect;
+    param_circle = cvRect(0,0,0,0);
+    cvNamedWindow( param_w_name, CV_WINDOW_AUTOSIZE );
+    if( param_rect.width != 0 && param_rect.height != 0 )
+        cvShowImageAndRectangle( param_w_name, param_img, param_rect );
     else
-        cvShowImage( param->w_name, param->img );
-    cvSetMouseCallback( param->w_name, on_mouse, (void *)param );
+        cvShowImage( param_w_name, param_img );
+    //cvSetMouseCallback( param_w_name, on_mouse, (void *)param );
+    cvSetMouseCallback( param_w_name, on_mouse );
     if( show ) cvNamedWindow( "Cropped", CV_WINDOW_AUTOSIZE );
 
     int frame = 1; // for video
     while( true ) // key callback
     {
         int key = cvWaitKey( 0 );
-        //cvPrintRect( param->rect );
         // Save
         if( key == 's' || key == 32 ) // 32 is SPACE
         {
             // If the rectangle runs off outside image, pick only inside regions
-            CvRect* rect = param->rect;
-            if( rect->x < 0 )
+            CvRect rect = param_rect;
+            if( rect.x < 0 )
             {
-                rect->width += rect->x;
-                rect->x = 0; // += rect->x
+                rect.width += rect.x;
+                rect.x = 0; // += rect.x
             }
-            if( rect->y < 0 )
+            if( rect.y < 0 )
             {
-                rect->height += rect->y;
-                rect->y = 0;
+                rect.height += rect.y;
+                rect.y = 0;
             }
-            rect->width = min( param->img->width - rect->x, rect->width );
-            rect->height = min( param->img->height - rect->y, rect->height );
+            rect.width = min( param_img->width - rect.x, rect.width );
+            rect.height = min( param_img->height - rect.y, rect.height );
 
             // save into image
-            if( rect->width > 1 || rect->height > 1 )
+            if( rect.width > 1 || rect.height > 1 )
             {
                 fs::path path = is_video ? reference : *filename;
                 string extension = string( fs::extension( path ), 1 );
                 string stem = fs::basename( path );
                 string dirname = path.branch_path().native_file_string();
                 string output_filename = convert_format( output_format, dirname, stem, extension, 
-                    rect->x, rect->y, rect->width, rect->height, frame );
+                    rect.x, rect.y, rect.width, rect.height, frame );
                 fs::path output_path = fs::path( output_filename );
 
                 fs::create_directories( output_path.branch_path() );
@@ -674,10 +670,10 @@ int main( int argc, char *argv[] )
                     cerr << "The image type " << fs::extension( output_path ) << " is not supported." << endl;
                     exit(1);
                 }
-                IplImage* crop = cvCreateImage( cvSize( rect->width, rect->height ), param->img->depth, param->img->nChannels );
-                cvSetImageROI( param->img, *rect );
-                cvCopy( param->img, crop );
-                cvResetImageROI( param->img );
+                IplImage* crop = cvCreateImage( cvSize( rect.width, rect.height ), param_img->depth, param_img->nChannels );
+                cvSetImageROI( param_img, rect );
+                cvCopy( param_img, crop );
+                cvResetImageROI( param_img );
                 cvSaveImage( output_path.native_file_string().c_str(), crop );
                 cout << output_path.native_file_string() << endl;
                 if( show ) cvShowImage( "Cropped", crop );
@@ -692,10 +688,10 @@ int main( int argc, char *argv[] )
                 IplImage* tmpimg;
                 if( tmpimg = cvQueryFrame( cap ) )
                 {
-                    param->img = tmpimg;
+                    param_img = tmpimg;
 #if defined(WIN32) || defined(WIN64)
-                    param->img->origin = 0;
-                    cvFlip( param->img );
+                    param_img->origin = 0;
+                    cvFlip( param_img );
 #endif
                     frame++;
                 }
@@ -704,28 +700,24 @@ int main( int argc, char *argv[] )
             {
                 if( filename + 1 != filelist.end() )
                 {
-                    cvReleaseImage( &param->img );
+                    cvReleaseImage( &param_img );
                     filename++;
-                    param->img = cvLoadImage( filename->native_file_string().c_str() );
+                    param_img = cvLoadImage( filename->native_file_string().c_str() );
                 }
             }
-            if( param->img )
+            if( param_img )
             {
-                if( param->circle->width != 0 )
+                if( param_circle.width != 0 )
                 {
-                    CvRect rect = cvShowImageAndWatershed( param->w_name, param->img, param->circle );
-                    param->rect->x = rect.x;
-                    param->rect->y = rect.y;
-                    param->rect->width = rect.width;
-                    param->rect->height = rect.height;
+                    param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
                 }
-                else if( param->rect->width != 0 )
+                else if( param_rect.width != 0 )
                 {
-                    cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+                    cvShowImageAndRectangle( param_w_name, param_img, param_rect );
                 }
                 else
                 {
-                    cvShowImage( param->w_name, param->img );
+                    cvShowImage( param_w_name, param_img );
                 }
             }
         }
@@ -736,27 +728,23 @@ int main( int argc, char *argv[] )
             {
                 if( filename != filelist.begin() ) 
                 {
-                    cvReleaseImage( &param->img );
+                    cvReleaseImage( &param_img );
                     filename--;
-                    param->img = cvLoadImage( filename->native_file_string().c_str() );
+                    param_img = cvLoadImage( filename->native_file_string().c_str() );
                 }
-                if( param->img )
+                if( param_img )
                 {
-                    if( param->circle->width != 0 )
+                    if( param_circle.width != 0 )
                     {
-                        CvRect rect = cvShowImageAndWatershed( param->w_name, param->img, param->circle );
-                        param->rect->x = rect.x;
-                        param->rect->y = rect.y;
-                        param->rect->width = rect.width;
-                        param->rect->height = rect.height;
+                        param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
                     }
-                    else if( param->rect->width != 0 )
+                    else if( param_rect.width != 0 )
                     {
-                        cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+                        cvShowImageAndRectangle( param_w_name, param_img, param_rect );
                     }
                     else
                     {
-                        cvShowImage( param->w_name, param->img );
+                        cvShowImage( param_w_name, param_img );
                     }
                 }
             }
@@ -769,66 +757,66 @@ int main( int argc, char *argv[] )
         // Rectangle Movement (Vi like hotkeys)
         else if( key == 'h' ) // Left
         {
-            param->rect->x = max( 0, param->rect->x - 1 );
-            if( param->rect->width != 0 )
+            param_rect.x = max( 0, param_rect.x - 1 );
+            if( param_rect.width != 0 )
             {
-                cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+                cvShowImageAndRectangle( param_w_name, param_img, param_rect );
             }
         }
         else if( key == 'j' ) // Down
         {
-            param->rect->y = min( param->img->height - param->rect->height, param->rect->y + 1);
-            if( param->rect->width != 0 )
+            param_rect.y = min( param_img->height - param_rect.height, param_rect.y + 1);
+            if( param_rect.width != 0 )
             {
-                cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+                cvShowImageAndRectangle( param_w_name, param_img, param_rect );
             }
         }
         else if( key == 'k' ) // Up
         {
-            param->rect->y = max( 0, param->rect->y - 1 );
-            if( param->rect->width != 0 )
+            param_rect.y = max( 0, param_rect.y - 1 );
+            if( param_rect.width != 0 )
             {
-                cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+                cvShowImageAndRectangle( param_w_name, param_img, param_rect );
             }
         }
         else if( key == 'l' ) // Right
         {
-            param->rect->x = min( param->img->width - param->rect->width, param->rect->x + 1);
-            if( param->rect->width != 0 )
+            param_rect.x = min( param_img->width - param_rect.width, param_rect.x + 1);
+            if( param_rect.width != 0 )
             {
-                cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+                cvShowImageAndRectangle( param_w_name, param_img, param_rect );
             }
         }
-        else if( key == 'y' ) // Shrink width (Move right border to left)
+        else if( key == 'y' ) // Shrink width
         {
-            param->rect->width = max( 0, param->rect->width - 1 );
-            if( param->rect->width != 0 && param->rect->height != 0 )
+            param_rect.width = max( 0, param_rect.width - 1 );
+            if( param_rect.width != 0 && param_rect.height != 0 )
             {
-                cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+                cvShowImageAndRectangle( param_w_name, param_img, param_rect );
             }
         }
-        else if( key == 'u' ) // Expand height (Move bottom border to bottom)
+        else if( key == 'u' ) // Expand height
         {
-            param->rect->height += 1;
-            if( param->rect->width != 0 && param->rect->height != 0 )
+            param_rect.height += 1;
+            if( param_rect.width != 0 && param_rect.height != 0 )
             {
-                cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+                cvShowImageAndRectangle( param_w_name, param_img, param_rect );
             }
         }
-        else if( key == 'i' ) // Shrink height (Move bottom border to top)
+        else if( key == 'i' ) // Shrink height
         {
-            param->rect->height = max( 0, param->rect->height - 1 );
-            if( param->rect->width != 0 && param->rect->height != 0 )
+            param_rect.height = max( 0, param_rect.height - 1 );
+            if( param_rect.width != 0 && param_rect.height != 0 )
             {
-                cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+                cvShowImageAndRectangle( param_w_name, param_img, param_rect );
             }
         }
-        else if( key == 'o' ) // Expand width (Move right border to right)
+        else if( key == 'o' ) // Expand width
         {
-            param->rect->width += 1;
-            if( param->rect->width != 0 && param->rect->height != 0 )
+            param_rect.width += 1;
+            if( param_rect.width != 0 && param_rect.height != 0 )
             {
-                cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+                cvShowImageAndRectangle( param_w_name, param_img, param_rect );
             }
         }
         else if( key == 'r' ) // Rotate // reserved
@@ -836,10 +824,9 @@ int main( int argc, char *argv[] )
         }
         if( key == 'e' || key == 'w' ) // Expansion and Shrink so that ratio does not change
         {
-            // @ToDo: keep center position, not left-top corner
-            if( param->rect->height != 0 && param->rect->width != 0 ) 
+            if( param_rect.height != 0 && param_rect.width != 0 ) 
             {
-                int gcd, a = param->rect->width, b = param->rect->height;
+                int gcd, a = param_rect.width, b = param_rect.height;
                 while( 1 )
                 {
                     a = a % b;
@@ -847,21 +834,21 @@ int main( int argc, char *argv[] )
                     b = b % a;
                     if( b == 0 ) { gcd = a; break; }
                 }
-                int ratio_width = param->rect->width / gcd;
-                int ratio_height = param->rect->height / gcd;
+                int ratio_width = param_rect.width / gcd;
+                int ratio_height = param_rect.height / gcd;
                 if( key == 'e' ) gcd += 1;
                 else if( key == 'w' ) gcd -= 1;
                 if( gcd > 0 )
                 {
                     cout << ratio_width << ":" << ratio_height << " * " << gcd << endl;
-                    param->rect->width = ratio_width * gcd;
-                    param->rect->height = ratio_height * gcd; 
-                    cvShowImageAndRectangle( param->w_name, param->img, param->rect );
+                    param_rect.width = ratio_width * gcd;
+                    param_rect.height = ratio_height * gcd; 
+                    cvShowImageAndRectangle( param_w_name, param_img, param_rect );
                 }
             }
         }
     }
-    cvDestroyWindow( param->w_name );
+    cvDestroyWindow( param_w_name );
     if( show ) cvDestroyWindow( "Cropped" );
 }
 
