@@ -492,7 +492,8 @@ void usage( const char* com, const fs::path &reference, const char* imgout_forma
     cerr << "    q (quit) or ESC : Quit. " << endl;
     cerr << "    h (left) j (down) k (up) l (right): Move rectangle." << endl;
     cerr << "    y (left) u (down) i (up) o (right): Resize rectangle." << endl;
-    cerr << "    e (expand) 3 (shrink)             : Resize rectangle keeping ratio." << endl;
+    cerr << "    e (expand) E (shrink)             : Resize rectangle keeping ratio." << endl;
+    cerr << "    r (rotate clockwise) R (inverse)  : Rotate rectangle." << endl;
 }
 
 int main( int argc, char *argv[] )
@@ -828,7 +829,7 @@ int main( int argc, char *argv[] )
         else if( key == 'R' ) // Inverse Rotate
         {
             param_degree += 1;
-            param_degree - (param_degree >= 360) ? param_degree - 360 : param_degree;
+            param_degree = (param_degree >= 360) ? param_degree - 360 : param_degree;
             cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_degree );
         }
         if( key == 'e' || key == 'E' ) // Expansion and Shrink so that ratio does not change
