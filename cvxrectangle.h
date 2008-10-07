@@ -21,22 +21,12 @@
 
 #include "cv.h"
 #include "cvaux.h"
+#include "highgui.h"
+#include <stdio.h>
+#include <math.h>
 
 #ifndef CV_RECTANGLE_INCLUDED
 #define CV_RECTANGLE_INCLUDED
-
-// Trivial inline functions
-inline double cvPointNorm( CvPoint p1, CvPoint p2, int norm_type = CV_L2 )
-{
-    // support only sqrt( sum( (p1 - p2)^2 ) )
-    return sqrt( pow( (double)p2.x - p1.x, 2 ) + pow( (double)p2.y - p1.y, 2 ) );
-}
-
-inline void cvPrintRect( CvRect &rect )
-{
-    printf( "%d %d %d %d\n", rect.x, rect.y, rect.width, rect.height );
-}
-
 
 /**
 // Crop image with rectangle
@@ -173,6 +163,31 @@ CVAPI(void) cvRotatedRectangle( IplImage* img, CvRect rect, double degree, CvSca
     }
     __END__;
 }
+
+// Trivial inline functions
+CV_INLINE double cvPointNorm( CvPoint p1, CvPoint p2, int norm_type = CV_L2 )
+{
+    // support only sqrt( sum( (p1 - p2)^2 ) )
+    return sqrt( pow( (double)p2.x - p1.x, 2 ) + pow( (double)p2.y - p1.y, 2 ) );
+}
+
+CV_INLINE void cvPrintRect( CvRect &rect )
+{
+    printf( "%d %d %d %d\n", rect.x, rect.y, rect.width, rect.height );
+}
+
+CV_INLINE void cvShowImageAndRectangle( const char* w_name, const IplImage* img, const CvRect& rect, double degree = 0, 
+                                     CvScalar color = CV_RGB(255, 255, 0), int thickness = 1, int line_type = 8, int shift = 0)
+{
+    IplImage* clone = cvCloneImage( img );
+    //CvPoint pt1 = cvPoint( rect.x, rect.y );
+    //CvPoint pt2 = cvPoint( rect.x + rect.width, rect.y + rect.height );
+    //cvRectangle( clone, pt1, pt2, CV_RGB(255, 255, 0), 1 );
+    cvRotatedRectangle( clone, rect, degree, color, thickness, line_type, shift );
+    cvShowImage( w_name, clone );
+    cvReleaseImage( &clone );
+}
+
 
 #ifdef _MSC_VER
 #pragma warning( pop )

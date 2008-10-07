@@ -39,155 +39,33 @@
 #include <boost/regex.hpp>
 #include <string>
 #include <vector>
+#include "get_filelist.h"
+#include "convert_format.h"
+#include "cvxrectangle.h"
 using namespace std;
 namespace fs = boost::filesystem;
-#include "cvxrectangle.h"
-// no header file because i'm lazy ;-)
 
 /**
-* List Files in a directory
-*
-* @param dirpath Path to the target directory
-* @param [regex = ".*"] Regular expression (instead of wild cards)
-* @param [file_type = type_unknown] List only specified file_type. The default is for all
-* @return vector<boost::filesystem::path> Vector of file list
-* @requirements boost::filesystem, boost::regex, std::vector, std::string 
-*
-* Memo: boost::filesystem::path path.native_file_string().c_str()
+* A structure for cvSetMouseCallback function
 */
-vector<fs::path> get_filelist( const fs::path& dirpath, 
-                              const boost::regex regex = boost::regex(".*"), 
-                              fs::file_type file_type = fs::type_unknown )
+/*
+typedef struct ImageClipperMouse {
+    const char* w_name;
+    IplImage* img;
+    CvRect rect;
+    CvRect circle; // use x, y for center, width as radius. width == 0 means watershed is off
+} ImageClipperMouse ;
+
+inline ImageClipperMouse imageClipperMouse( const char* w_name, IplImage* img, CvRect& rect, CvRect& circle )
 {
-    vector<fs::path> filelist;
-    bool list_directory    = ( file_type == fs::directory_file );
-    bool list_regular_file = ( file_type == fs::regular_file );
-    bool list_symlink      = ( file_type == fs::symlink_file );
-    bool list_other        = ( !list_directory && !list_regular_file && !list_symlink );
-    bool list_all          = ( file_type == fs::type_unknown ); // just for now
-
-    if( !fs::exists( dirpath ) || !fs::is_directory( dirpath ) )
-    {
-        return filelist;
-    }
-
-    fs::directory_iterator iter( dirpath ), end_iter;
-    for( ; iter != end_iter; ++iter )
-    {
-        fs::path filename = iter->path();
-        if( boost::regex_match( filename.native_file_string(), regex ) )
-        {
-            if( list_all )
-            {
-                filelist.push_back( filename );
-            }
-            else if( list_regular_file && fs::is_regular( filename ) )
-            {
-                filelist.push_back( filename );                
-            }
-            else if( list_directory && fs::is_directory( filename ) )
-            {
-                filelist.push_back( filename );
-            }
-            else if( list_symlink && fs::is_symlink( filename ) )
-            {
-                filelist.push_back( filename );
-            }
-            else if( list_other && fs::is_other( filename ) )
-            {
-                filelist.push_back( filename );
-            }
-        }
-    }
-    return filelist;
-}
-
-/**
-* Convert format
-*
-* %i => filename
-* %e => extension
-* %x => x
-* %y => y
-* %w => width
-* %h => height
-* %r => rotation (radian * 1000)
-* %f => frame number (for video file)
-*
-* @param format The format string
-* @return string
-* @todo refine more (use boost::any or use boost::regex)
-*/
-string convert_format( const string& format, const string& dirname, const string& filename, const string& extension, 
-                      int x, int y, int width, int height, int frame = 0, int rotation = 0 )
-{
-    string ret = format;
-    char tmp[2048];
-    char intkeys[] = { 'x', 'y', 'w', 'h', 'f', 'r' };
-    int  intvals[] = { x, y, width, height, frame, rotation };
-    char strkeys[] = { 'i', 'e', 'd' };
-    std::string strvals[] = { filename, extension, dirname };
-    int nintkeys = 6;
-    int nstrkeys = 3;
-    for( int i = 0; i < nintkeys + nstrkeys; i++ )
-    {
-        std::string::size_type start = ret.find( "%" );
-        if( start == std::string::npos ) break;
-        std::string::size_type minstrpos = std::string::npos;
-        std::string::size_type minintpos = std::string::npos;
-        int minstrkey = INT_MAX; int minintkey = INT_MAX;
-        for( int j = 0; j < nstrkeys; j++ )
-        {
-            std::string::size_type pos = ret.find( strkeys[j], start );
-            if( pos < minstrpos )
-            {
-                minstrpos = pos;
-                minstrkey = j;
-            }
-        }
-        for( int j = 0; j < nintkeys; j++ )
-        {
-            std::string::size_type pos = ret.find( intkeys[j], start );
-            if( pos < minintpos )
-            {
-                minintpos = pos;
-                minintkey = j;
-            }
-        }
-        if( minstrpos == std::string::npos && minintpos == std::string::npos ) break;
-        if( minstrpos < minintpos )
-        {
-            string format_substr = ret.substr( start, minstrpos - start ) + "s";
-            sprintf( tmp, format_substr.c_str(), strvals[minstrkey].c_str() );
-            ret.replace( start, minstrpos - start + 1, string( tmp ) );
-        }
-        else
-        {
-            string format_substr = ret.substr( start, minintpos - start ) + "d";
-            sprintf( tmp, format_substr.c_str(), intvals[minintkey] );
-            ret.replace( start, minintpos - start + 1, string( tmp ) );
-        }
-    }
-    return ret;
-}
-
-///// Trivial Inline Functions ////
-inline void cvShowImageAndRectangle( const char* w_name, const IplImage* img, const CvRect& rect, double degree = 0 )
-{
-    IplImage* clone = cvCloneImage( img );
-    if( rect.width > 0 && rect.height > 0 && rect.x >= 0 && rect.y >= 0 && rect.x + rect.width <= img->width && rect.y + rect.height <= img->height )
-    {
-        //CvPoint pt1 = cvPoint( rect.x, rect.y );
-        //CvPoint pt2 = cvPoint( rect.x + rect.width, rect.y + rect.height );
-        //cvRectangle( clone, pt1, pt2, CV_RGB(255, 255, 0), 1 );
-        cvRotatedRectangle( clone, rect, degree, CV_RGB(255, 255, 0), 1 );
-        IplImage* dst = cvCreateImage( cvSize( rect.width, rect.height ), img->depth, img->nChannels );
-        cvCropImage( clone, dst, rect, degree );
-        cvReleaseImage( &dst );
-    }
-    cvShowImage( w_name, clone );
-    cvReleaseImage( &clone );
-}
+    ImageClipperMouse m = { w_name, img, rect, circle };
+    return m;
+}*/
+const char* param_w_name;
+IplImage*   param_img;
+CvRect      param_rect;
+CvRect      param_circle;
+int         param_degree;
 
 inline CvRect cvShowImageAndWatershed( const char* w_name, const IplImage* img, const CvRect &circle )
 {
@@ -227,28 +105,6 @@ inline CvRect cvShowImageAndWatershed( const char* w_name, const IplImage* img, 
 
     return cvRect( minpoint.x, minpoint.y, maxpoint.x - minpoint.x, maxpoint.y - minpoint.y );
 }
-
-/**
-* A structure for cvSetMouseCallback function
-*/
-/*
-typedef struct ImageClipperMouse {
-    const char* w_name;
-    IplImage* img;
-    CvRect rect;
-    CvRect circle; // use x, y for center, width as radius. width == 0 means watershed is off
-} ImageClipperMouse ;
-
-inline ImageClipperMouse imageClipperMouse( const char* w_name, IplImage* img, CvRect& rect, CvRect& circle )
-{
-    ImageClipperMouse m = { w_name, img, rect, circle };
-    return m;
-}*/
-const char* param_w_name;
-IplImage* param_img;
-CvRect param_rect;
-CvRect param_circle;
-int param_degree;
 
 /**
 * cvSetMouseCallback function
