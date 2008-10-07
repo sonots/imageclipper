@@ -41,7 +41,6 @@
 *
 * @param format The format string
 * @return string
-* @todo refine more (use boost::any or use boost::regex)
 */
 string convert_format( const string& format, const string& dirname, const string& filename, const string& extension, 
                       int x, int y, int width, int height, int frame = 0, int rotation = 0 )
