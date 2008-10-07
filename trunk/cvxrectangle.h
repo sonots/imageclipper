@@ -174,4 +174,8 @@ CVAPI(void) cvRotatedRectangle( IplImage* img, CvRect rect, double degree, CvSca
     __END__;
 }
 
+#ifdef _MSC_VER
+#pragma warning( pop )
+#endif
+
 #endif
