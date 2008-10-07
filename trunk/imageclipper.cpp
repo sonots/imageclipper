@@ -450,17 +450,18 @@ int main( int argc, char *argv[] )
             }
         }
         cerr << "Done!" << endl;
+        cerr << "Now showing " << filename->native_file_string() << endl;
         img = cvLoadImage( filename->native_file_string().c_str() );
     }
     else if( is_video )
     {
-        cerr << "Now reading a video..... ";
         if ( !fs::exists( reference ) )
         {
             cerr << "The file " << reference.native_file_string() << " does not exist or is not readable." << endl << endl;
             usage( argv[0], reference, imgout_format, vidout_format, initial_rect );
             exit(1);
         }
+        cerr << "Now reading a video..... ";
         cap = cvCaptureFromFile( reference.native_file_string().c_str() );
         for( int i = 0; i < frame; i++ )
         {
@@ -472,6 +473,8 @@ int main( int argc, char *argv[] )
                 exit(1);
             }
         }
+        cerr << "Done!" << endl;
+        cerr << "Now showing the frame " << frame << endl;
 #if defined(WIN32) || defined(WIN64)
         img->origin = 0;
         cvFlip( img );

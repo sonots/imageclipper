@@ -179,6 +179,7 @@ CV_INLINE void cvPrintRect( CvRect &rect )
 CV_INLINE void cvShowImageAndRectangle( const char* w_name, const IplImage* img, const CvRect& rect, double degree = 0, 
                                      CvScalar color = CV_RGB(255, 255, 0), int thickness = 1, int line_type = 8, int shift = 0)
 {
+    if( rect.width <= 0 || rect.height <= 0 ) return;
     IplImage* clone = cvCloneImage( img );
     //CvPoint pt1 = cvPoint( rect.x, rect.y );
     //CvPoint pt2 = cvPoint( rect.x + rect.width, rect.y + rect.height );
