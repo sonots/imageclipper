@@ -29,7 +29,7 @@
 #define CV_RECTANGLE_INCLUDED
 
 /**
-// Crop image with rectangle
+// Crop image with rectangle (supports affine transformation)
 //
 // @param IplImage* img          The target image
 // @param IplImage* dst          The cropped image
@@ -55,8 +55,13 @@ CVAPI(void) cvCropImage( IplImage* img, IplImage* dst, CvRect rect, const CvMat*
     else
     {
         int x, y, xp, yp, z;
-        CvMat* xy = cvCreateMat( 3, 1, CV_32FC1 ); cvmSet( xy, 2, 0, 1 );
+        CvMat* xy  = cvCreateMat( 3, 1, CV_32FC1 );
+        cvmSet( xy, 2, 0, 1 );
         CvMat* xyp = cvCreateMat( 2, 1, CV_32FC1 );
+        /*
+        [x' y']t = [o o o  * [x y 1]t
+                    o o o]
+        */
         cvZero( dst );
         for( x = 0; x < rect.width; x++ )
         {
@@ -88,6 +93,7 @@ CVAPI(void) cvCropImage( IplImage* img, IplImage* dst, CvRect rect, const CvMat*
 // @param CvRect rect         The rectangle region
 // @param double [degree = 0] The rotation degree of rectangle region
 // @return void
+// @uses cvCropImage
 */
 CVAPI(void) cvCropImageRotatedROI( IplImage* img, IplImage* dst, CvRect rect, double degree = 0 )
 {
@@ -121,7 +127,8 @@ CVAPI(void) cvCropImageRotatedROI( IplImage* img, IplImage* dst, CvRect rect, do
 // @param CvScalar color         The color
 // @return void
 */
-CVAPI(void) cvAffineRectangle( IplImage* img, CvRect rect, const CvMat* affine = NULL, CvScalar color = CV_RGB(255, 255, 255), int thickness = 1, int line_type = 8, int shift = 0)
+CVAPI(void) cvAffineRectangle( IplImage* img, CvRect rect, const CvMat* affine = NULL, 
+                               CvScalar color = CV_RGB(255, 255, 255), int thickness = 1, int line_type = 8, int shift = 0)
 {
     CV_FUNCNAME( "cvAffineRectangle" );
     __BEGIN__;
@@ -147,7 +154,8 @@ CVAPI(void) cvAffineRectangle( IplImage* img, CvRect rect, const CvMat* affine =
         //cvWarpAffine( mask, mask, affine, CV_INTER_LINEAR + CV_WARP_FILL_OUTLIERS, cvScalarAll(0) );
 
         int x, y, xp, yp, z;
-        CvMat* xy = cvCreateMat( 3, 1, CV_32FC1 ); cvmSet( xy, 2, 0, 1 );
+        CvMat* xy = cvCreateMat( 3, 1, CV_32FC1 );
+        cvmSet( xy, 2, 0, 1 );
         CvMat* xyp = cvCreateMat( 2, 1, CV_32FC1 );
         /*
         [x' y']t = [o o o  * [x y 1]t
