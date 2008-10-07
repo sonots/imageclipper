@@ -31,14 +31,14 @@
 /**
 // Crop image with rectangle
 //
-// @param IplImage* img The target image
-// @param IplImage* dst The cropped image
+// @param IplImage* img          The target image
+// @param IplImage* dst          The cropped image
 //    IplImage* dst = cvCreateImage( cvSize( rect.width, rect.height ), img->depth, img->nChannels );
-// @param CvRect rect   The rectangle region
-// @param double degree The rotation degree of rectangle region
+// @param CvRect rect            The rectangle region
+// @param CvMat* [affine = NULL] The 2 x 3 affine transform matrix
 // @return void
 */
-CVAPI(void) cvCropImage( IplImage* img, IplImage* dst, CvRect rect, double degree = 0 )
+CVAPI(void) cvCropImage( IplImage* img, IplImage* dst, CvRect rect, const CvMat* affine = NULL )
 {
     CV_FUNCNAME( "cvCropImage" );
     __BEGIN__;
@@ -46,7 +46,7 @@ CVAPI(void) cvCropImage( IplImage* img, IplImage* dst, CvRect rect, double degre
     CV_ASSERT( dst->width == rect.width );
     CV_ASSERT( dst->height == rect.height );
     
-    if( degree == 0 )
+    if( affine == NULL )
     {
         cvSetImageROI( img, rect );
         cvCopy( img, dst );
@@ -55,9 +55,6 @@ CVAPI(void) cvCropImage( IplImage* img, IplImage* dst, CvRect rect, double degre
     else
     {
         int x, y, xp, yp, z;
-        CvMat* map_matrix = cvCreateMat( 2, 3, CV_32FC1 );
-        CvPoint2D32f center = cvPoint2D32f( rect.x, rect.y );
-        cv2DRotationMatrix( center, degree, 1.0, map_matrix );
         CvMat* xy = cvCreateMat( 3, 1, CV_32FC1 ); cvmSet( xy, 2, 0, 1 );
         CvMat* xyp = cvCreateMat( 2, 1, CV_32FC1 );
         cvZero( dst );
@@ -67,7 +64,7 @@ CVAPI(void) cvCropImage( IplImage* img, IplImage* dst, CvRect rect, double degre
             for( y = 0; y < rect.height; y ++ )
             {
                 cvmSet( xy, 1, 0, y + rect.y );
-                cvMatMul( map_matrix, xy, xyp );
+                cvMatMul( affine, xy, xyp );
                 xp = (int)cvmGet( xyp, 0, 0 );
                 yp = (int)cvmGet( xyp, 1, 0 );
                 if( xp < 0 || xp > img->width || yp < 0 || yp > img->height ) continue;
@@ -79,27 +76,58 @@ CVAPI(void) cvCropImage( IplImage* img, IplImage* dst, CvRect rect, double degre
             }
         }
     }
-    //cvNamedWindow("hoge");
-    //cvShowImage("hoge", dst);
     __END__;
 }
 
 /**
-// Draw a rotated rectangle
+// Crop image with rotated rectangle
 //
-// @param IplImage* img The image to be drawn rectangle
-// @param CvRect rect   The rectangle region
-// @param double degree The rotation degree of rectangle region
-// @param CvScalar color Color
+// @param IplImage* img       The target image
+// @param IplImage* dst       The cropped image
+//    IplImage* dst = cvCreateImage( cvSize( rect.width, rect.height ), img->depth, img->nChannels );
+// @param CvRect rect         The rectangle region
+// @param double [degree = 0] The rotation degree of rectangle region
 // @return void
 */
-CVAPI(void) cvRotatedRectangle( IplImage* img, CvRect rect, double degree, CvScalar color, int thickness = 1, int line_type = 8, int shift = 0)
+CVAPI(void) cvCropImageRotatedROI( IplImage* img, IplImage* dst, CvRect rect, double degree = 0 )
 {
-    CV_FUNCNAME( "cvRotatedRectangle" );
+    CV_FUNCNAME( "cvCropImage" );
+    __BEGIN__;
+    CV_ASSERT( rect.width > 0 && rect.height > 0 );
+    CV_ASSERT( dst->width == rect.width );
+    CV_ASSERT( dst->height == rect.height );
+    
+    if( degree == 0 )
+    {
+        cvCropImage( img, dst, rect, NULL );
+    }
+    else
+    {
+        CvMat* affine = cvCreateMat( 2, 3, CV_32FC1 );
+        CvPoint2D32f center = cvPoint2D32f( rect.x, rect.y );
+        cv2DRotationMatrix( center, degree, 1.0, affine );
+        cvCropImage( img, dst, rect, affine );
+        cvReleaseMat( &affine );
+    }
+    __END__;
+}
+
+/**
+// Draw an affine transformed rectangle
+//
+// @param IplImage* img          The image to be drawn rectangle
+// @param CvRect rect            The rectangle region
+// @param CvMat* [affine = NULL] The 2 x 3 affine transformation matrix
+// @param CvScalar color         The color
+// @return void
+*/
+CVAPI(void) cvAffineRectangle( IplImage* img, CvRect rect, const CvMat* affine = NULL, CvScalar color = CV_RGB(255, 255, 255), int thickness = 1, int line_type = 8, int shift = 0)
+{
+    CV_FUNCNAME( "cvAffineRectangle" );
     __BEGIN__;
     CV_ASSERT( rect.width > 0 && rect.height > 0 );
 
-    if( degree == 0 )
+    if( affine == NULL )
     {
         CvPoint pt1 = cvPoint( rect.x, rect.y );
         CvPoint pt2 = cvPoint( rect.x + rect.width, rect.y + rect.height );
@@ -116,12 +144,9 @@ CVAPI(void) cvRotatedRectangle( IplImage* img, CvRect rect, double degree, CvSca
         //        mask->imageData[mask->widthStep * y + x] = 1;
         //    }
         //}
-        //cvWarpAffine( mask, mask, map_matrix, CV_INTER_LINEAR + CV_WARP_FILL_OUTLIERS, cvScalarAll(0) );
+        //cvWarpAffine( mask, mask, affine, CV_INTER_LINEAR + CV_WARP_FILL_OUTLIERS, cvScalarAll(0) );
 
         int x, y, xp, yp, z;
-        CvMat* map_matrix = cvCreateMat( 2, 3, CV_32FC1 );
-        CvPoint2D32f center = cvPoint2D32f( rect.x, rect.y );
-        cv2DRotationMatrix( center, degree, 1.0, map_matrix );
         CvMat* xy = cvCreateMat( 3, 1, CV_32FC1 ); cvmSet( xy, 2, 0, 1 );
         CvMat* xyp = cvCreateMat( 2, 1, CV_32FC1 );
         /*
@@ -134,7 +159,7 @@ CVAPI(void) cvRotatedRectangle( IplImage* img, CvRect rect, double degree, CvSca
             for( y = 0; y < rect.height; y += max(1, rect.height - 1) )
             {
                 cvmSet( xy, 1, 0, y + rect.y );
-                cvMatMul( map_matrix, xy, xyp );
+                cvMatMul( affine, xy, xyp );
                 xp = (int)cvmGet( xyp, 0, 0 );
                 yp = (int)cvmGet( xyp, 1, 0 );
                 if( xp < 0 || xp > img->width || yp < 0 || yp > img->height ) continue;
@@ -150,7 +175,7 @@ CVAPI(void) cvRotatedRectangle( IplImage* img, CvRect rect, double degree, CvSca
             for( x = 0; x < rect.width; x += max( 1, rect.width - 1) )
             {
                 cvmSet( xy, 0, 0, x + rect.x );
-                cvMatMul( map_matrix, xy, xyp );
+                cvMatMul( affine, xy, xyp );
                 xp = (int)cvmGet( xyp, 0, 0 );
                 yp = (int)cvmGet( xyp, 1, 0 );
                 if( xp < 0 || xp > img->width || yp < 0 || yp > img->height ) continue;
@@ -163,6 +188,38 @@ CVAPI(void) cvRotatedRectangle( IplImage* img, CvRect rect, double degree, CvSca
     }
     __END__;
 }
+
+/**
+// Draw a rotated rectangle
+//
+// @param IplImage* img The image to be drawn rectangle
+// @param CvRect rect   The rectangle region
+// @param double degree The rotation degree of rectangle region
+// @param CvScalar color Color
+// @return void
+// @uses cvAffineRectangle
+*/
+CVAPI(void) cvRotatedRectangle( IplImage* img, CvRect rect, double degree, CvScalar color, int thickness = 1, int line_type = 8, int shift = 0)
+{
+    CV_FUNCNAME( "cvRotatedRectangle" );
+    __BEGIN__;
+    CV_ASSERT( rect.width > 0 && rect.height > 0 );
+
+    if( degree == 0 )
+    {
+        cvAffineRectangle( img, rect, NULL, color, thickness, line_type, shift );
+    }
+    else
+    {
+        CvMat* affine = cvCreateMat( 2, 3, CV_32FC1 );
+        CvPoint2D32f center = cvPoint2D32f( rect.x, rect.y );
+        cv2DRotationMatrix( center, degree, 1.0, affine );
+        cvAffineRectangle( img, rect, affine, color, thickness, line_type, shift );
+        cvReleaseMat( &affine );
+    }
+    __END__;
+}
+
 
 // Trivial inline functions
 CV_INLINE double cvPointNorm( CvPoint p1, CvPoint p2, int norm_type = CV_L2 )

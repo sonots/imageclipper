@@ -542,7 +542,7 @@ int main( int argc, char *argv[] )
                     exit(1);
                 }
                 IplImage* crop = cvCreateImage( cvSize( rect.width, rect.height ), param_img->depth, param_img->nChannels );
-                cvCropImage( param_img, crop, rect, param_degree );
+                cvCropImageRotatedROI( param_img, crop, rect, param_degree );
                 cvSaveImage( output_path.native_file_string().c_str(), crop );
                 cout << output_path.native_file_string() << endl;
                 if( show ) cvShowImage( "Cropped", crop );
