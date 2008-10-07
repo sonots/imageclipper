@@ -175,7 +175,7 @@ string convert_format( const string& format, const string& dirname, const string
 inline void cvShowImageAndRectangle( const char* w_name, const IplImage* img, const CvRect& rect, double degree = 0 )
 {
     IplImage* clone = cvCloneImage( img );
-    if( rect.width > 0 && rect.height > 0 )
+    if( rect.width > 0 && rect.height > 0 && rect.x >= 0 && rect.y >= 0 && rect.x + rect.width <= img->width && rect.y + rect.height <= img->height )
     {
         //CvPoint pt1 = cvPoint( rect.x, rect.y );
         //CvPoint pt2 = cvPoint( rect.x + rect.width, rect.y + rect.height );
@@ -802,21 +802,29 @@ int main( int argc, char *argv[] )
         }
         else if( key == 'y' ) // Shrink width
         {
+            //param_rect.x = min( param_img->width, param_rect.x + 1 );
+            //param_rect.width = max( 0, param_rect.width - 2 );
             param_rect.width = max( 0, param_rect.width - 1 );
             cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_degree );
         }
         else if( key == 'u' ) // Expand height
         {
+            //param_rect.y = max( 0, param_rect.y - 1 );
+            //param_rect.height += 2;
             param_rect.height += 1;
             cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_degree );
         }
         else if( key == 'i' ) // Shrink height
         {
+            //param_rect.y = min( param_img->height, param_rect.y + 1 );
+            //param_rect.height = max( 0, param_rect.height - 2 );
             param_rect.height = max( 0, param_rect.height - 1 );
             cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_degree );
         }
         else if( key == 'o' ) // Expand width
         {
+            //param_rect.x = max( 0, param_rect.x - 1 );
+            //param_rect.width += 2;
             param_rect.width += 1;
             cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_degree );
         }
