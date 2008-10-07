@@ -689,14 +689,14 @@ int main( int argc, char *argv[] )
         }
         else if( key == 'r' ) // Rotate
         {
-            param_degree -= 1;
-            param_degree = (param_degree < 0) ? 360 + param_degree : param_degree;
+            param_degree += 1;
+            param_degree = (param_degree >= 360) ? param_degree - 360 : param_degree;
             cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_degree );
         }
         else if( key == 'R' ) // Inverse Rotate
         {
-            param_degree += 1;
-            param_degree = (param_degree >= 360) ? param_degree - 360 : param_degree;
+            param_degree -= 1;
+            param_degree = (param_degree < 0) ? 360 + param_degree : param_degree;
             cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_degree );
         }
         if( key == 'e' || key == 'E' ) // Expansion and Shrink so that ratio does not change
