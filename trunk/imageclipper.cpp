@@ -511,26 +511,27 @@ int main( int argc, char *argv[] )
     while( true ) // key callback
     {
         int key = cvWaitKey( 0 );
-        // Save
+
+        // If the rectangle runs off outside image, pick only inside regions
+        CvRect rect = param_rect;
+        if( rect.x < 0 )
+        {
+            rect.width += rect.x;
+            rect.x = 0; // += rect.x
+        }
+        if( rect.y < 0 )
+        {
+            rect.height += rect.y;
+            rect.y = 0;
+        }
+        rect.width = min( param_img->width - rect.x, rect.width );
+        rect.height = min( param_img->height - rect.y, rect.height );
+
+            // Save
         if( key == 's' || key == 32 ) // 32 is SPACE
         {
-            // If the rectangle runs off outside image, pick only inside regions
-            CvRect rect = param_rect;
-            if( rect.x < 0 )
-            {
-                rect.width += rect.x;
-                rect.x = 0; // += rect.x
-            }
-            if( rect.y < 0 )
-            {
-                rect.height += rect.y;
-                rect.y = 0;
-            }
-            rect.width = min( param_img->width - rect.x, rect.width );
-            rect.height = min( param_img->height - rect.y, rect.height );
-
             // save into image
-            if( rect.width > 1 || rect.height > 1 )
+            if( rect.width > 0 && rect.height > 0 )
             {
                 fs::path path = is_video ? reference : *filename;
                 string extension = string( fs::extension( path ), 1 );
@@ -551,6 +552,21 @@ int main( int argc, char *argv[] )
                 cvSaveImage( output_path.native_file_string().c_str(), crop );
                 cout << output_path.native_file_string() << endl;
                 if( show ) cvShowImage( "Cropped", crop );
+                cvReleaseImage( &crop );
+            }
+        }
+        else if( key == 'd' ) // preview
+        {
+            if( rect.width > 0 && rect.height > 0 )
+            {
+                if( !show )
+                {
+                    cvNamedWindow( "Cropped" );
+                    show = true;
+                }
+                IplImage* crop = cvCreateImage( cvSize( rect.width, rect.height ), param_img->depth, param_img->nChannels );
+                cvCropImageROI( param_img, crop, rect, param_rotate, param_shear );
+                cvShowImage( "Cropped", crop );
                 cvReleaseImage( &crop );
             }
         }
