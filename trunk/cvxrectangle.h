@@ -145,13 +145,14 @@ CVAPI(void) cvCropImageROI( IplImage* img, IplImage* dst, CvRect rect, double ro
 }
 
 /**
-// Draw an affine transformed rectangle
+// Draw an rotated and sheared rectangle (affine transformation of (0,0,1,1) rectangle)
 //
 // @param IplImage* img       The image to be drawn rectangle
 // @param CvRect rect         The translation (x, y) and scaling (width, height) parameter or the rectangle region
 // @param double [rotate = 0] The rotation parameter in degree
 // @param double [shear = 0]  The shear deformation orientation parameter in degree
 // @param CvScalar color      The color
+// @todo support thickness, line_type, shift
 // @return void
 */
 CVAPI(void) cvDrawRectangle( IplImage* img, CvRect rect, double rotate = 0, double shear = 0, 
