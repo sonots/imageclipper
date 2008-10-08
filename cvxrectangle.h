@@ -229,13 +229,45 @@ CV_INLINE void cvPrintRect( CvRect &rect )
 CV_INLINE void cvShowImageAndRectangle( const char* w_name, const IplImage* img, const CvRect& rect, double rotate = 0, double shear = 0,
                                        CvScalar color = CV_RGB(255, 255, 0), int thickness = 1, int line_type = 8, int shift = 0)
 {
-    if( rect.width <= 0 || rect.height <= 0 ) return;
-    IplImage* clone = cvCloneImage( img );
-    cvDrawRectangle( clone, rect, rotate, shear, color, thickness, line_type, shift );
-    cvShowImage( w_name, clone );
-    cvReleaseImage( &clone );
+    if( rect.width <= 0 || rect.height <= 0 )
+    {
+        cvShowImage( w_name, img );
+    }
+    else
+    {
+        IplImage* clone = cvCloneImage( img );
+        cvDrawRectangle( clone, rect, rotate, shear, color, thickness, line_type, shift );
+        cvShowImage( w_name, clone );
+        cvReleaseImage( &clone );
+    }
 }
 
+CV_INLINE void cvShowCroppedImage( const char* w_name, IplImage* orig, const CvRect rect, double rotate = 0, double shear = 0 )
+{
+    if( rect.width <= 0 || rect.height <= 0 ) return;
+    IplImage* crop = cvCreateImage( cvSize( rect.width, rect.height ), orig->depth, orig->nChannels );
+    cvCropImageROI( orig, crop, rect, rotate, shear );
+    cvShowImage( w_name, crop );
+    cvReleaseImage( &crop );
+}
+
+// If the rectangle runs off outside image, pick only inside regions
+CV_INLINE CvRect cvValidateRect( CvRect rect, int max_width, int max_height )
+{
+    if( rect.x < 0 )
+    {
+        rect.width += rect.x;
+        rect.x = 0; // += rect.x
+    }
+    if( rect.y < 0 )
+    {
+        rect.height += rect.y;
+        rect.y = 0;
+    }
+    rect.width = min( max_width - rect.x, rect.width );
+    rect.height = min( max_height - rect.y, rect.height );
+    return rect;
+}
 
 #ifdef _MSC_VER
 #pragma warning( pop )

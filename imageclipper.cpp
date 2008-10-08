@@ -62,6 +62,7 @@ inline ImageClipperMouse imageClipperMouse( const char* w_name, IplImage* img, C
     return m;
 }*/
 const char* param_w_name;
+const char* param_miniw_name;
 IplImage*   param_img;
 CvRect      param_rect;
 CvRect      param_circle;
@@ -143,6 +144,8 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
     {
         param_circle.width = (int) cvPointNorm( cvPoint( param_circle.x, param_circle.y ), cvPoint( x, y ) );
         param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
+        CvRect rect = cvValidateRect( param_rect, param_img->width, param_img->height );
+        cvShowCroppedImage( param_miniw_name, param_img, rect, param_rotate, param_shear );
     }
 
     // LBUTTON is to draw rectangle
@@ -161,7 +164,9 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
         param_rect.width =  abs( point0.x - x );
         param_rect.height = abs( point0.y - y );
 
-        cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
+        CvRect rect = cvValidateRect( param_rect, param_img->width, param_img->height );
+        cvShowImageAndRectangle( param_w_name, param_img, rect, param_rotate, param_shear );
+        cvShowCroppedImage( param_miniw_name, param_img, rect, param_rotate, param_shear );
     }
 
     // RBUTTON to move rentangle or watershed marker
@@ -217,6 +222,8 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
             param_circle.y += move.y;
 
             param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
+            CvRect rect = cvValidateRect( param_rect, param_img->width, param_img->height );
+            cvShowCroppedImage( param_miniw_name, param_img, rect, param_rotate, param_shear );
 
             point0 = cvPoint( x, y );
         }
@@ -224,6 +231,8 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
         {
             param_circle.width = (int) cvPointNorm( cvPoint( param_circle.x, param_circle.y ), cvPoint( x, y ) );
             param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
+            CvRect rect = cvValidateRect( param_rect, param_img->width, param_img->height );
+            cvShowCroppedImage( param_miniw_name, param_img, rect, param_rotate, param_shear );
         }
     }
     else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_RBUTTON ) // Move or resize for rectangle
@@ -276,7 +285,9 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
             resize_rect_bottom = tmp;
         }
 
-        cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
+        CvRect rect = cvValidateRect( param_rect, param_img->width, param_img->height );
+        cvShowImageAndRectangle( param_w_name, param_img, rect, param_rotate, param_shear );
+        cvShowCroppedImage( param_miniw_name, param_img, rect, param_rotate, param_shear );
         point0 = cvPoint( x, y );
     }
 
@@ -335,9 +346,6 @@ void usage( const char* com, const fs::path &reference, const char* imgout_forma
     cerr << "    -h" << endl;
     cerr << "    --help" << endl;
     cerr << "        Show this help" << endl;
-    cerr << "    -s" << endl;
-    cerr << "    --show" << endl;
-    cerr << "        Show clipped image" << endl;
     cerr << endl;
     cerr << "  Supported Image Types" << endl;
     cerr << "      bmp|dib|jpeg|jpg|jpe|png|pbm|pgm|ppm|sr|ras|tiff|exr|jp2" << endl;
@@ -361,17 +369,17 @@ int main( int argc, char *argv[] )
 {
     //// Initialization
     fs::path reference( "." );
-    bool show                 = false;
     const char* imgout_format = "%d/imageclipper/%i.%e_%04r_%04x_%04y_%04w_%04h.png";
     const char* vidout_format = "%d/imageclipper/%i.%e_%04f_%04r_%04x_%04y_%04w_%04h.png";
     const char* output_format = NULL;
     boost::regex imagetypes( ".*\\.(bmp|dib|jpeg|jpg|jpe|png|pbm|pgm|ppm|sr|ras|tiff|exr|jp2)$", 
         boost::regex_constants::icase );
     const char* w_name        = "<S> Save <F> Forward <SPACE> s and f <B> Backward <ESC> Exit";
+    const char* miniw_name    = "Cropped";
     CvRect initial_rect       = cvRect( 0, 0, 0, 0 );
     int frame                 = 1;
 
-    //// Arguments
+    //// Arguments Processing
     for( int i = 1; i < argc; i++ )
     {
         if( !strcmp( argv[i], "-h" ) || !strcmp( argv[i], "--help" ) )
@@ -401,10 +409,6 @@ int main( int argc, char *argv[] )
         else if( !strcmp( argv[i], "-f" ) || !strcmp( argv[i], "--frame" ) )
         {
             frame = atoi( argv[++i] );
-        }
-        else if( !strcmp( argv[i], "-s" ) || !strcmp( argv[i], "--show" ) )
-        {
-            show = true;
         }
         else
         {
@@ -494,43 +498,29 @@ int main( int argc, char *argv[] )
 
     //// Mouse and Key callback
     //ImageClipperMouse* param = &imageClipperMouse( w_name, img, initial_rect, cvRect(0,0,0,0) );
-    param_w_name = w_name;
-    param_img = img;
-    param_rect = initial_rect;
-    param_circle = cvRect(0,0,0,0);
-    param_rotate = 0;
+    param_w_name     = w_name;
+    param_miniw_name = miniw_name;
+    param_img        = img;
+    param_rect       = initial_rect;
+    param_circle     = cvRect(0,0,0,0);
+    param_rotate     = 0;
+    param_shear      = 0;
     cvNamedWindow( param_w_name, CV_WINDOW_AUTOSIZE );
-    if( param_rect.width != 0 && param_rect.height != 0 )
-        cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
-    else
-        cvShowImage( param_w_name, param_img );
+    cvNamedWindow( param_miniw_name, CV_WINDOW_AUTOSIZE );
+    cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
+    cvShowCroppedImage( param_miniw_name, param_img, param_rect, param_rotate, param_shear );
     //cvSetMouseCallback( param_w_name, on_mouse, (void *)param );
     cvSetMouseCallback( param_w_name, on_mouse );
-    if( show ) cvNamedWindow( "Cropped", CV_WINDOW_AUTOSIZE );
 
     while( true ) // key callback
     {
         int key = cvWaitKey( 0 );
 
-        // If the rectangle runs off outside image, pick only inside regions
-        CvRect rect = param_rect;
-        if( rect.x < 0 )
-        {
-            rect.width += rect.x;
-            rect.x = 0; // += rect.x
-        }
-        if( rect.y < 0 )
-        {
-            rect.height += rect.y;
-            rect.y = 0;
-        }
-        rect.width = min( param_img->width - rect.x, rect.width );
-        rect.height = min( param_img->height - rect.y, rect.height );
 
-            // Save
-        if( key == 's' || key == 32 ) // 32 is SPACE
+        // 32 is SPACE
+        if( key == 's' || key == 32 ) // Save
         {
-            // save into image
+            CvRect rect = cvValidateRect( param_rect, img->width, img->height );
             if( rect.width > 0 && rect.height > 0 )
             {
                 fs::path path = is_video ? reference : *filename;
@@ -551,22 +541,6 @@ int main( int argc, char *argv[] )
                 cvCropImageROI( param_img, crop, rect, param_rotate, param_shear );
                 cvSaveImage( output_path.native_file_string().c_str(), crop );
                 cout << output_path.native_file_string() << endl;
-                if( show ) cvShowImage( "Cropped", crop );
-                cvReleaseImage( &crop );
-            }
-        }
-        else if( key == 'd' ) // preview
-        {
-            if( rect.width > 0 && rect.height > 0 )
-            {
-                if( !show )
-                {
-                    cvNamedWindow( "Cropped" );
-                    show = true;
-                }
-                IplImage* crop = cvCreateImage( cvSize( rect.width, rect.height ), param_img->depth, param_img->nChannels );
-                cvCropImageROI( param_img, crop, rect, param_rotate, param_shear );
-                cvShowImage( "Cropped", crop );
                 cvReleaseImage( &crop );
             }
         }
@@ -597,21 +571,6 @@ int main( int argc, char *argv[] )
                     cout << filename->native_file_string() << endl;
                 }
             }
-            if( param_img )
-            {
-                if( param_circle.width != 0 )
-                {
-                    param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
-                }
-                else if( param_rect.width != 0 )
-                {
-                    cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
-                }
-                else
-                {
-                    cvShowImage( param_w_name, param_img );
-                }
-            }
         }
         // Backward
         else if( key == 'b' )
@@ -625,21 +584,6 @@ int main( int argc, char *argv[] )
                     param_img = cvLoadImage( filename->native_file_string().c_str() );
                     cout << filename->native_file_string() << endl;
                 }
-                if( param_img )
-                {
-                    if( param_circle.width != 0 )
-                    {
-                        param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
-                    }
-                    else if( param_rect.width != 0 )
-                    {
-                        cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
-                    }
-                    else
-                    {
-                        cvShowImage( param_w_name, param_img );
-                    }
-                }
             }
         }
         // Exit
@@ -651,86 +595,62 @@ int main( int argc, char *argv[] )
         else if( key == 'h' ) // Left
         {
             param_rect.x = max( 0, param_rect.x - 1 );
-            if( param_rect.width != 0 )
-            {
-                cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
-            }
         }
         else if( key == 'j' ) // Down
         {
             param_rect.y = min( param_img->height - param_rect.height, param_rect.y + 1);
-            if( param_rect.width != 0 )
-            {
-                cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
-            }
         }
         else if( key == 'k' ) // Up
         {
             param_rect.y = max( 0, param_rect.y - 1 );
-            if( param_rect.width != 0 )
-            {
-                cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
-            }
         }
         else if( key == 'l' ) // Right
         {
             param_rect.x = min( param_img->width - param_rect.width, param_rect.x + 1);
-            if( param_rect.width != 0 )
-            {
-                cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
-            }
         }
         else if( key == 'y' ) // Shrink width
         {
             //param_rect.x = min( param_img->width, param_rect.x + 1 );
             //param_rect.width = max( 0, param_rect.width - 2 );
             param_rect.width = max( 0, param_rect.width - 1 );
-            cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
         }
         else if( key == 'u' ) // Expand height
         {
             //param_rect.y = max( 0, param_rect.y - 1 );
             //param_rect.height += 2;
             param_rect.height += 1;
-            cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
         }
         else if( key == 'i' ) // Shrink height
         {
             //param_rect.y = min( param_img->height, param_rect.y + 1 );
             //param_rect.height = max( 0, param_rect.height - 2 );
             param_rect.height = max( 0, param_rect.height - 1 );
-            cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
         }
         else if( key == 'o' ) // Expand width
         {
             //param_rect.x = max( 0, param_rect.x - 1 );
             //param_rect.width += 2;
             param_rect.width += 1;
-            cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
         }
         else if( key == 'r' ) // Rotate
         {
             param_rotate += 1;
             param_rotate = (param_rotate >= 360) ? param_rotate - 360 : param_rotate;
-            cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
         }
         else if( key == 'R' ) // Inverse Rotate
         {
             param_rotate -= 1;
             param_rotate = (param_rotate < 0) ? 360 + param_rotate : param_rotate;
-            cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
         }
         else if( key == 'w' ) // Shear
         {
             param_shear += 1;
             param_shear = (param_shear >= 360) ? param_shear - 360 : param_shear;
-            cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
         }
         else if( key == 'W' ) // Inverse Shear
         {
             param_shear -= 1;
             param_shear = (param_shear < 0) ? 360 + param_shear : param_shear;
-            cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
         }
         else if( key == 'e' ) // Expand
         {
@@ -738,15 +658,13 @@ int main( int argc, char *argv[] )
             param_rect.width += 2;
             param_rect.y = max( 0, param_rect.y - 1 );
             param_rect.height += 2;
-            cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
         }
         else if( key == 'E' ) // Shrink
         {
-            param_rect.x = min( img->width, param_rect.x + 1 );
+            param_rect.x = min( param_img->width, param_rect.x + 1 );
             param_rect.width = max( 0, param_rect.width - 2 );
-            param_rect.y = min( img->height, param_rect.y + 1 );
+            param_rect.y = min( param_img->height, param_rect.y + 1 );
             param_rect.height = max( 0, param_rect.height - 2 );
-            cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
         }
         /*
         if( key == 'e' || key == 'E' ) // Expansion and Shrink so that ratio does not change
@@ -774,8 +692,24 @@ int main( int argc, char *argv[] )
                 }
             }
         }*/
+
+        if( param_img )
+        {
+            if( param_circle.width != 0 )
+            {
+                param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
+                CvRect rect = cvValidateRect( param_rect, param_img->width, param_img->height );
+                cvShowCroppedImage( param_miniw_name, param_img, rect, param_rotate, param_shear );
+            }
+            else
+            {
+                CvRect rect = cvValidateRect( param_rect, param_img->width, param_img->height );
+                cvShowImageAndRectangle( param_w_name, param_img, rect, param_rotate, param_shear );
+                cvShowCroppedImage( param_miniw_name, param_img, rect, param_rotate, param_shear );
+            }
+        }
     }
     cvDestroyWindow( param_w_name );
-    if( show ) cvDestroyWindow( "Cropped" );
+    cvDestroyWindow( param_miniw_name );
 }
 
