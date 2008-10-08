@@ -232,14 +232,12 @@ CV_INLINE void cvShowImageAndRectangle( const char* w_name, const IplImage* img,
     if( rect.width <= 0 || rect.height <= 0 )
     {
         cvShowImage( w_name, img );
+        return;
     }
-    else
-    {
-        IplImage* clone = cvCloneImage( img );
-        cvDrawRectangle( clone, rect, rotate, shear, color, thickness, line_type, shift );
-        cvShowImage( w_name, clone );
-        cvReleaseImage( &clone );
-    }
+    IplImage* clone = cvCloneImage( img );
+    cvDrawRectangle( clone, rect, rotate, shear, color, thickness, line_type, shift );
+    cvShowImage( w_name, clone );
+    cvReleaseImage( &clone );
 }
 
 CV_INLINE void cvShowCroppedImage( const char* w_name, IplImage* orig, const CvRect rect, double rotate = 0, double shear = 0 )

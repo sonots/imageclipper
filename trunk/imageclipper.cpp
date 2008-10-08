@@ -135,13 +135,13 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
     {
         param_circle.x = x;
         param_circle.y = y;
-        param_rotate   = 0;
-        param_shear    = 0;
-        cvShowImage( param_w_name, param_img );
     }
     else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_MBUTTON ||
         ( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_LBUTTON && flags & CV_EVENT_FLAG_SHIFTKEY ) )
     {
+        param_rotate   = 0;
+        param_shear    = 0;
+
         param_circle.width = (int) cvPointNorm( cvPoint( param_circle.x, param_circle.y ), cvPoint( x, y ) );
         param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
         CvRect rect = cvValidateRect( param_rect, param_img->width, param_img->height );
@@ -152,13 +152,13 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
     else if( event == CV_EVENT_LBUTTONDOWN ) // initialization
     {
         point0 = cvPoint( x, y );
-        param_circle.width = 0; // disable watershed
-        param_rotate   = 0;
-        param_shear    = 0;
-        cvShowImage( param_w_name, param_img );
     }
     else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_LBUTTON )
     {
+        param_circle.width = 0; // disable watershed
+        param_rotate       = 0;
+        param_shear        = 0;
+
         param_rect.x = min( point0.x, x );
         param_rect.y = min( point0.y, y );
         param_rect.width =  abs( point0.x - x );
