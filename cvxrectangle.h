@@ -29,24 +29,83 @@
 #define CV_RECTANGLE_INCLUDED
 
 /**
-// Crop image with rectangle (supports affine transformation)
+// Create a affine transform matrix
 //
-// @param IplImage* img          The target image
-// @param IplImage* dst          The cropped image
-//    IplImage* dst = cvCreateImage( cvSize( rect.width, rect.height ), img->depth, img->nChannels );
-// @param CvRect rect            The rectangle region
-// @param CvMat* [affine = NULL] The 2 x 3 affine transform matrix
+// @param CvMat* affine                   The 2 x 3 CV_32FC1|CV_64FC1 affine matrix to be created
+// @param CvRect [rect = cvRect(0,0,1,1)] The translation (x, y) and scaling (width, height) parameter
+// @param double [rotate = 0]             The rotation parameter in degree
+// @param double [shear = 0]              The shear deformation orientation parameter in degree
 // @return void
 */
-CVAPI(void) cvCropImage( IplImage* img, IplImage* dst, CvRect rect, const CvMat* affine = NULL )
+CVAPI(void) cvCreateAffine( CvMat* affine, CvRect rect, double rotate = 0, double shear = 0 )
 {
-    CV_FUNCNAME( "cvCropImage" );
+    CV_FUNCNAME( "cvCreateAffine" );
+    __BEGIN__;
+    CV_ASSERT( rect.width > 0 && rect.height > 0 );
+    CV_ASSERT( affine->rows == 2 && affine->cols == 3 );
+
+    CvMat* rotatetmp = cvCreateMat( 2, 3, CV_32FC1 );
+    CvMat* rotation  = cvCreateMat( 2, 2, CV_32FC1 );
+    CvMat* neg_shear = cvCreateMat( 2, 2, CV_32FC1 );
+    CvMat* scale     = cvCreateMat( 2, 2, CV_32FC1 );
+    CvMat* pos_shear = cvCreateMat( 2, 2, CV_32FC1 );
+
+    cvmSet( affine, 0, 2, rect.x );
+    cvmSet( affine, 1, 2, rect.y );
+    cvZero( scale );
+    cvmSet( scale, 0, 0, rect.width );
+    cvmSet( scale, 1, 1, rect.height );
+    cv2DRotationMatrix( cvPoint2D32f( 0, 0 ), rotate, 1.0, rotatetmp );
+    cvmSet( rotation, 0, 0, cvmGet( rotatetmp, 0, 0 ) );
+    cvmSet( rotation, 0, 1, cvmGet( rotatetmp, 0, 1 ) );
+    cvmSet( rotation, 1, 0, cvmGet( rotatetmp, 1, 0 ) );
+    cvmSet( rotation, 1, 1, cvmGet( rotatetmp, 1, 1 ) );
+    cv2DRotationMatrix( cvPoint2D32f( 0, 0 ), -shear, 1.0, rotatetmp );
+    cvmSet( neg_shear, 0, 0, cvmGet( rotatetmp, 0, 0 ) );
+    cvmSet( neg_shear, 0, 1, cvmGet( rotatetmp, 0, 1 ) );
+    cvmSet( neg_shear, 1, 0, cvmGet( rotatetmp, 1, 0 ) );
+    cvmSet( neg_shear, 1, 1, cvmGet( rotatetmp, 1, 1 ) );
+    cv2DRotationMatrix( cvPoint2D32f( 0, 0 ), shear, 1.0, rotatetmp );
+    cvmSet( pos_shear, 0, 0, cvmGet( rotatetmp, 0, 0 ) );
+    cvmSet( pos_shear, 0, 1, cvmGet( rotatetmp, 0, 1 ) );
+    cvmSet( pos_shear, 1, 0, cvmGet( rotatetmp, 1, 0 ) );
+    cvmSet( pos_shear, 1, 1, cvmGet( rotatetmp, 1, 1 ) );
+    cvMatMul( rotation, neg_shear, neg_shear );
+    cvMatMul( neg_shear, scale, scale );
+    cvMatMul( scale, pos_shear, pos_shear );
+    cvmSet( affine, 0, 0, cvmGet( pos_shear, 0, 0 ) );
+    cvmSet( affine, 0, 1, cvmGet( pos_shear, 0, 1 ) );
+    cvmSet( affine, 1, 0, cvmGet( pos_shear, 1, 0 ) );
+    cvmSet( affine, 1, 1, cvmGet( pos_shear, 1, 1 ) );
+
+    cvReleaseMat( &rotatetmp );
+    cvReleaseMat( &rotation );
+    cvReleaseMat( &neg_shear );
+    cvReleaseMat( &pos_shear );
+    cvReleaseMat( &scale );
+    __END__;
+}
+
+/**
+// Crop image with rotated and sheared rectangle (affine transformation of (0,0,1,1) rectangle)
+//
+// @param IplImage* img       The target image
+// @param IplImage* dst       The cropped image
+//    IplImage* dst = cvCreateImage( cvSize( rect.width, rect.height ), img->depth, img->nChannels );
+// @param CvRect rect         The translation (x, y) and scaling (width, height) parameter or the rectangle region
+// @param double [rotate = 0] The rotation parameter in degree
+// @param double [shear = 0]  The shear deformation orientation parameter in degree
+// @return void
+*/
+CVAPI(void) cvCropImageROI( IplImage* img, IplImage* dst, CvRect rect, double rotate = 0, double shear = 0 )
+{
+    CV_FUNCNAME( "cvCropImageROI" );
     __BEGIN__;
     CV_ASSERT( rect.width > 0 && rect.height > 0 );
     CV_ASSERT( dst->width == rect.width );
     CV_ASSERT( dst->height == rect.height );
-    
-    if( affine == NULL )
+
+    if( rotate == 0 && shear == 0 )
     {
         cvSetImageROI( img, rect );
         cvCopy( img, dst );
@@ -54,21 +113,19 @@ CVAPI(void) cvCropImage( IplImage* img, IplImage* dst, CvRect rect, const CvMat*
     }
     else
     {
-        int x, y, xp, yp, z;
-        CvMat* xy  = cvCreateMat( 3, 1, CV_32FC1 );
-        cvmSet( xy, 2, 0, 1 );
-        CvMat* xyp = cvCreateMat( 2, 1, CV_32FC1 );
-        /*
-        [x' y']t = [o o o  * [x y 1]t
-                    o o o]
-        */
-        cvZero( dst );
+        int x, y, z, xp, yp;
+        CvMat* affine = cvCreateMat( 2, 3, CV_32FC1 );
+        CvMat* xy     = cvCreateMat( 3, 1, CV_32FC1 );
+        CvMat* xyp    = cvCreateMat( 2, 1, CV_32FC1 );
+        cvmSet( xy, 2, 0, 1.0 );
+        cvCreateAffine( affine, rect, rotate, shear );
+
         for( x = 0; x < rect.width; x++ )
         {
-            cvmSet( xy, 0, 0, x + rect.x );
-            for( y = 0; y < rect.height; y ++ )
+            cvmSet( xy, 0, 0, x / (double) rect.width );
+            for( y = 0; y < rect.height; y++ )
             {
-                cvmSet( xy, 1, 0, y + rect.y );
+                cvmSet( xy, 1, 0, y / (double) rect.height );
                 cvMatMul( affine, xy, xyp );
                 xp = (int)cvmGet( xyp, 0, 0 );
                 yp = (int)cvmGet( xyp, 1, 0 );
@@ -76,44 +133,13 @@ CVAPI(void) cvCropImage( IplImage* img, IplImage* dst, CvRect rect, const CvMat*
                 for( z = 0; z < img->nChannels; z++ )
                 {
                     dst->imageData[dst->widthStep * y + x * dst->nChannels + z]
-                        = img->imageData[img->widthStep * yp + xp * img->nChannels + z];
+                    = img->imageData[img->widthStep * yp + xp * img->nChannels + z];
                 }
             }
         }
-    }
-    __END__;
-}
-
-/**
-// Crop image with rotated rectangle
-//
-// @param IplImage* img       The target image
-// @param IplImage* dst       The cropped image
-//    IplImage* dst = cvCreateImage( cvSize( rect.width, rect.height ), img->depth, img->nChannels );
-// @param CvRect rect         The rectangle region
-// @param double [degree = 0] The rotation degree of rectangle region
-// @return void
-// @uses cvCropImage
-*/
-CVAPI(void) cvCropImageRotatedROI( IplImage* img, IplImage* dst, CvRect rect, double degree = 0 )
-{
-    CV_FUNCNAME( "cvCropImage" );
-    __BEGIN__;
-    CV_ASSERT( rect.width > 0 && rect.height > 0 );
-    CV_ASSERT( dst->width == rect.width );
-    CV_ASSERT( dst->height == rect.height );
-    
-    if( degree == 0 )
-    {
-        cvCropImage( img, dst, rect, NULL );
-    }
-    else
-    {
-        CvMat* affine = cvCreateMat( 2, 3, CV_32FC1 );
-        CvPoint2D32f center = cvPoint2D32f( rect.x, rect.y );
-        cv2DRotationMatrix( center, degree, 1.0, affine );
-        cvCropImage( img, dst, rect, affine );
         cvReleaseMat( &affine );
+        cvReleaseMat( &xy );
+        cvReleaseMat( &xyp );
     }
     __END__;
 }
@@ -121,20 +147,21 @@ CVAPI(void) cvCropImageRotatedROI( IplImage* img, IplImage* dst, CvRect rect, do
 /**
 // Draw an affine transformed rectangle
 //
-// @param IplImage* img          The image to be drawn rectangle
-// @param CvRect rect            The rectangle region
-// @param CvMat* [affine = NULL] The 2 x 3 affine transformation matrix
-// @param CvScalar color         The color
+// @param IplImage* img       The image to be drawn rectangle
+// @param CvRect rect         The translation (x, y) and scaling (width, height) parameter or the rectangle region
+// @param double [rotate = 0] The rotation parameter in degree
+// @param double [shear = 0]  The shear deformation orientation parameter in degree
+// @param CvScalar color      The color
 // @return void
 */
-CVAPI(void) cvAffineRectangle( IplImage* img, CvRect rect, const CvMat* affine = NULL, 
-                               CvScalar color = CV_RGB(255, 255, 255), int thickness = 1, int line_type = 8, int shift = 0)
+CVAPI(void) cvDrawRectangle( IplImage* img, CvRect rect, double rotate = 0, double shear = 0, 
+                            CvScalar color = CV_RGB(255, 255, 255), int thickness = 1, int line_type = 8, int shift = 0)
 {
-    CV_FUNCNAME( "cvAffineRectangle" );
+    CV_FUNCNAME( "cvDrawRectangle" );
     __BEGIN__;
     CV_ASSERT( rect.width > 0 && rect.height > 0 );
 
-    if( affine == NULL )
+    if( rotate == 0 && shear == 0 )
     {
         CvPoint pt1 = cvPoint( rect.x, rect.y );
         CvPoint pt2 = cvPoint( rect.x + rect.width, rect.y + rect.height );
@@ -142,31 +169,19 @@ CVAPI(void) cvAffineRectangle( IplImage* img, CvRect rect, const CvMat* affine =
     }
     else
     {
-        //IplImage* mask = cvCreateImage( cvGetSize(img), img->depth, img->nChannels );
-        //cvZero( mask );
-        //for( x = rect.x; x < rect.x + rect.width; x++ )
-        //{
-        //    for( y = rect.y; y < rect.y + rect.height; y++ )
-        //    {
-        //        mask->imageData[mask->widthStep * y + x] = 1;
-        //    }
-        //}
-        //cvWarpAffine( mask, mask, affine, CV_INTER_LINEAR + CV_WARP_FILL_OUTLIERS, cvScalarAll(0) );
+        int x, y, z, xp, yp;
+        CvMat* affine = cvCreateMat( 2, 3, CV_32FC1 );
+        CvMat* xy     = cvCreateMat( 3, 1, CV_32FC1 );
+        CvMat* xyp    = cvCreateMat( 2, 1, CV_32FC1 );
+        cvmSet( xy, 2, 0, 1.0 );
+        cvCreateAffine( affine, rect, rotate, shear );
 
-        int x, y, xp, yp, z;
-        CvMat* xy = cvCreateMat( 3, 1, CV_32FC1 );
-        cvmSet( xy, 2, 0, 1 );
-        CvMat* xyp = cvCreateMat( 2, 1, CV_32FC1 );
-        /*
-        [x' y']t = [o o o  * [x y 1]t
-                    o o o]
-        */
         for( x = 0; x < rect.width; x++ )
         {
-            cvmSet( xy, 0, 0, x + rect.x );
+            cvmSet( xy, 0, 0, x / (double) rect.width );
             for( y = 0; y < rect.height; y += max(1, rect.height - 1) )
             {
-                cvmSet( xy, 1, 0, y + rect.y );
+                cvmSet( xy, 1, 0, y / (double) rect.height );
                 cvMatMul( affine, xy, xyp );
                 xp = (int)cvmGet( xyp, 0, 0 );
                 yp = (int)cvmGet( xyp, 1, 0 );
@@ -179,10 +194,10 @@ CVAPI(void) cvAffineRectangle( IplImage* img, CvRect rect, const CvMat* affine =
         }
         for( y = 0; y < rect.height; y++ )
         {
-            cvmSet( xy, 1, 0, y + rect.y );
+            cvmSet( xy, 1, 0, y / (double) rect.height );
             for( x = 0; x < rect.width; x += max( 1, rect.width - 1) )
             {
-                cvmSet( xy, 0, 0, x + rect.x );
+                cvmSet( xy, 0, 0, x / (double) rect.width );
                 cvMatMul( affine, xy, xyp );
                 xp = (int)cvmGet( xyp, 0, 0 );
                 yp = (int)cvmGet( xyp, 1, 0 );
@@ -193,37 +208,6 @@ CVAPI(void) cvAffineRectangle( IplImage* img, CvRect rect, const CvMat* affine =
                 }
             }
         }
-    }
-    __END__;
-}
-
-/**
-// Draw a rotated rectangle
-//
-// @param IplImage* img The image to be drawn rectangle
-// @param CvRect rect   The rectangle region
-// @param double degree The rotation degree of rectangle region
-// @param CvScalar color Color
-// @return void
-// @uses cvAffineRectangle
-*/
-CVAPI(void) cvRotatedRectangle( IplImage* img, CvRect rect, double degree, CvScalar color, int thickness = 1, int line_type = 8, int shift = 0)
-{
-    CV_FUNCNAME( "cvRotatedRectangle" );
-    __BEGIN__;
-    CV_ASSERT( rect.width > 0 && rect.height > 0 );
-
-    if( degree == 0 )
-    {
-        cvAffineRectangle( img, rect, NULL, color, thickness, line_type, shift );
-    }
-    else
-    {
-        CvMat* affine = cvCreateMat( 2, 3, CV_32FC1 );
-        CvPoint2D32f center = cvPoint2D32f( rect.x, rect.y );
-        cv2DRotationMatrix( center, degree, 1.0, affine );
-        cvAffineRectangle( img, rect, affine, color, thickness, line_type, shift );
-        cvReleaseMat( &affine );
     }
     __END__;
 }
@@ -241,15 +225,12 @@ CV_INLINE void cvPrintRect( CvRect &rect )
     printf( "%d %d %d %d\n", rect.x, rect.y, rect.width, rect.height );
 }
 
-CV_INLINE void cvShowImageAndRectangle( const char* w_name, const IplImage* img, const CvRect& rect, double degree = 0, 
-                                     CvScalar color = CV_RGB(255, 255, 0), int thickness = 1, int line_type = 8, int shift = 0)
+CV_INLINE void cvShowImageAndRectangle( const char* w_name, const IplImage* img, const CvRect& rect, double rotate = 0, double shear = 0,
+                                       CvScalar color = CV_RGB(255, 255, 0), int thickness = 1, int line_type = 8, int shift = 0)
 {
     if( rect.width <= 0 || rect.height <= 0 ) return;
     IplImage* clone = cvCloneImage( img );
-    //CvPoint pt1 = cvPoint( rect.x, rect.y );
-    //CvPoint pt2 = cvPoint( rect.x + rect.width, rect.y + rect.height );
-    //cvRectangle( clone, pt1, pt2, CV_RGB(255, 255, 0), 1 );
-    cvRotatedRectangle( clone, rect, degree, color, thickness, line_type, shift );
+    cvDrawRectangle( clone, rect, rotate, shear, color, thickness, line_type, shift );
     cvShowImage( w_name, clone );
     cvReleaseImage( &clone );
 }
