@@ -45,7 +45,6 @@ http://imageclipper.googlecode.com/files/snapshot.png
   * Use <q> or <ESC> key to quit application (Sorry, but OpenCV GUI does not support to quit an application by closing window. Use Ctrl-c if command prompt is left alone.)
   * Use <r> to rotate clockwise, and <R> (Shift-<r>) in counter-clockwise.
   * Use <e> to expand the window size, and <E> (Shift-<e>) to shrink.
-  * Use <w> to determine the [http://en.wikipedia.org/wiki/Shear_mapping>shear deformation] roatation, and <W> (Shift-<w>) to rotate inversely. (This is the last parameter for the affine transform.)
   * Note that above keys are located on the left hand keyboard region. 
   * Use <h> left <j> down <k> up <l> right to move the rectangle region ([http://en.wikipedia.org/wiki/Vi vi]-like keybind)
   * Use <y> left <u> down <i> up <o> right to move the rectangle's right-bottom boundary, that is, to resize in x and y directions. 
