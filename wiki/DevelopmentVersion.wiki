@@ -20,8 +20,8 @@ PS. It may be required to install [http://www.microsoft.com/downloads/details.as
   * You can open images in a directory sequentially
   * You can open a video file too, frame by frame
   * Clipping and moving to the next image can be done by one button (SPACE)
-  * You will select a region to clip by dragging left mouse button
-  * You can move or resize your selected region by dragging right mouse button and hotkeys. 
+  * You will initialize a region to clip by dragging left mouse button
+  * You can move or resize your selected region by hotkeys or dragging right mouse button. 
   * Your selected region is shown on the next image too. 
   * You can select the output image filename format (command line)
 
