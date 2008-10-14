@@ -81,8 +81,8 @@ CVAPI(void) cvCreateAffine( CvMat* affine, CvRect rect, double rotate = 0, doubl
     cvReleaseMat( &rotatetmp );
     cvReleaseMat( &rotation );
     cvReleaseMat( &neg_shear );
-    cvReleaseMat( &pos_shear );
     cvReleaseMat( &scale );
+    cvReleaseMat( &pos_shear );
     __END__;
 }
 
@@ -105,7 +105,9 @@ CVAPI(void) cvCropImageROI( IplImage* img, IplImage* dst, CvRect rect, double ro
     CV_ASSERT( dst->width == rect.width );
     CV_ASSERT( dst->height == rect.height );
 
-    if( rotate == 0 && shear == 0 )
+    if( rotate == 0 && shear == 0 && 
+        rect.x >= 0 && rect.y >= 0 && 
+        rect.x + rect.width < img->width && rect.y + rect.height < img->height )
     {
         cvSetImageROI( img, rect );
         cvCopy( img, dst );
@@ -119,6 +121,7 @@ CVAPI(void) cvCropImageROI( IplImage* img, IplImage* dst, CvRect rect, double ro
         CvMat* xyp    = cvCreateMat( 2, 1, CV_32FC1 );
         cvmSet( xy, 2, 0, 1.0 );
         cvCreateAffine( affine, rect, rotate, shear );
+        cvZero( dst );
 
         for( x = 0; x < rect.width; x++ )
         {
@@ -209,6 +212,9 @@ CVAPI(void) cvDrawRectangle( IplImage* img, CvRect rect, double rotate = 0, doub
                 }
             }
         }
+        cvReleaseMat( &affine );
+        cvReleaseMat( &xy );
+        cvReleaseMat( &xyp );
     }
     __END__;
 }
@@ -221,7 +227,7 @@ CV_INLINE double cvPointNorm( CvPoint p1, CvPoint p2, int norm_type = CV_L2 )
     return sqrt( pow( (double)p2.x - p1.x, 2 ) + pow( (double)p2.y - p1.y, 2 ) );
 }
 
-CV_INLINE void cvPrintRect( CvRect &rect )
+CV_INLINE void cvPrintRect( const CvRect &rect )
 {
     printf( "%d %d %d %d\n", rect.x, rect.y, rect.width, rect.height );
 }
