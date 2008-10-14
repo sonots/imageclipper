@@ -66,8 +66,8 @@ const char* param_miniw_name;
 IplImage*   param_img;
 CvRect      param_rect;
 CvRect      param_circle;
-int         param_rotate;
-int         param_shear;
+int         param_rotate = 0;
+int         param_shear = 0;
 
 inline CvRect cvShowImageAndWatershed( const char* w_name, const IplImage* img, const CvRect &circle )
 {
@@ -144,8 +144,7 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
 
         param_circle.width = (int) cvPointNorm( cvPoint( param_circle.x, param_circle.y ), cvPoint( x, y ) );
         param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
-        CvRect rect = cvValidateRect( param_rect, param_img->width, param_img->height );
-        cvShowCroppedImage( param_miniw_name, param_img, rect, param_rotate, param_shear );
+        cvShowCroppedImage( param_miniw_name, param_img, param_rect, param_rotate, param_shear );
     }
 
     // LBUTTON is to draw rectangle
@@ -164,9 +163,8 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
         param_rect.width =  abs( point0.x - x );
         param_rect.height = abs( point0.y - y );
 
-        CvRect rect = cvValidateRect( param_rect, param_img->width, param_img->height );
-        cvShowImageAndRectangle( param_w_name, param_img, rect, param_rotate, param_shear );
-        cvShowCroppedImage( param_miniw_name, param_img, rect, param_rotate, param_shear );
+        cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
+        cvShowCroppedImage( param_miniw_name, param_img, param_rect, param_rotate, param_shear );
     }
 
     // RBUTTON to move rentangle or watershed marker
@@ -222,8 +220,7 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
             param_circle.y += move.y;
 
             param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
-            CvRect rect = cvValidateRect( param_rect, param_img->width, param_img->height );
-            cvShowCroppedImage( param_miniw_name, param_img, rect, param_rotate, param_shear );
+            cvShowCroppedImage( param_miniw_name, param_img, param_rect, param_rotate, param_shear );
 
             point0 = cvPoint( x, y );
         }
@@ -231,8 +228,7 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
         {
             param_circle.width = (int) cvPointNorm( cvPoint( param_circle.x, param_circle.y ), cvPoint( x, y ) );
             param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
-            CvRect rect = cvValidateRect( param_rect, param_img->width, param_img->height );
-            cvShowCroppedImage( param_miniw_name, param_img, rect, param_rotate, param_shear );
+            cvShowCroppedImage( param_miniw_name, param_img, param_rect, param_rotate, param_shear );
         }
     }
     else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_RBUTTON ) // Move or resize for rectangle
@@ -285,9 +281,8 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
             resize_rect_bottom = tmp;
         }
 
-        CvRect rect = cvValidateRect( param_rect, param_img->width, param_img->height );
-        cvShowImageAndRectangle( param_w_name, param_img, rect, param_rotate, param_shear );
-        cvShowCroppedImage( param_miniw_name, param_img, rect, param_rotate, param_shear );
+        cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
+        cvShowCroppedImage( param_miniw_name, param_img, param_rect, param_rotate, param_shear );
         point0 = cvPoint( x, y );
     }
 
@@ -333,6 +328,8 @@ void usage( const char* com, const fs::path &reference, const char* imgout_forma
     cerr << "            %y - upper-left y coord" << endl;
     cerr << "            %w - width" << endl;
     cerr << "            %h - height" << endl;
+    cerr << "            %r - rotation degree" << endl;
+    cerr << "            %s - shear deformation degree" << endl;
     cerr << "            %f - frame number (for video)" << endl;
     cerr << "        Example) ./$i_%04x_%04y_%04w_%04h.%e" << endl;
     cerr << "            Store into software directory and use image type of the original." << endl;
@@ -362,7 +359,7 @@ void usage( const char* com, const fs::path &reference, const char* imgout_forma
     cerr << "    h (left) j (down) k (up) l (right): Move rectangle." << endl;
     cerr << "    y (left) u (down) i (up) o (right): Resize rectangle." << endl;
     cerr << "    e (expand) E (shrink)             : Resize rectangle keeping ratio." << endl;
-    cerr << "    r (rotate clockwise) R (inverse)  : Rotate rectangle." << endl;
+    cerr << "    r (rotate clockwise) R (counter)  : Rotate rectangle." << endl;
 }
 
 int main( int argc, char *argv[] )
@@ -516,19 +513,17 @@ int main( int argc, char *argv[] )
     {
         int key = cvWaitKey( 0 );
 
-
         // 32 is SPACE
         if( key == 's' || key == 32 ) // Save
         {
-            CvRect rect = cvValidateRect( param_rect, img->width, img->height );
-            if( rect.width > 0 && rect.height > 0 )
+            if( param_rect.width > 0 && param_rect.height > 0 )
             {
                 fs::path path = is_video ? reference : *filename;
                 string extension = string( fs::extension( path ), 1 );
                 string stem = fs::basename( path );
                 string dirname = path.branch_path().native_file_string();
                 string output_filename = convert_format( output_format, dirname, stem, extension, 
-                    rect.x, rect.y, rect.width, rect.height, frame, param_rotate );
+                    param_rect.x, param_rect.y, param_rect.width, param_rect.height, frame, param_rotate );
                 fs::path output_path = fs::path( output_filename );
 
                 fs::create_directories( output_path.branch_path() );
@@ -537,8 +532,8 @@ int main( int argc, char *argv[] )
                     cerr << "The image type " << fs::extension( output_path ) << " is not supported." << endl;
                     exit(1);
                 }
-                IplImage* crop = cvCreateImage( cvSize( rect.width, rect.height ), param_img->depth, param_img->nChannels );
-                cvCropImageROI( param_img, crop, rect, param_rotate, param_shear );
+                IplImage* crop = cvCreateImage( cvSize( param_rect.width, param_rect.height ), param_img->depth, param_img->nChannels );
+                cvCropImageROI( param_img, crop, param_rect, param_rotate, param_shear );
                 cvSaveImage( output_path.native_file_string().c_str(), crop );
                 cout << output_path.native_file_string() << endl;
                 cvReleaseImage( &crop );
@@ -594,19 +589,19 @@ int main( int argc, char *argv[] )
         // Rectangle Movement (Vi like hotkeys)
         else if( key == 'h' ) // Left
         {
-            param_rect.x = max( 0, param_rect.x - 1 );
+            param_rect.x -= 1;
         }
         else if( key == 'j' ) // Down
         {
-            param_rect.y = min( param_img->height - param_rect.height, param_rect.y + 1);
+            param_rect.y += 1;
         }
         else if( key == 'k' ) // Up
         {
-            param_rect.y = max( 0, param_rect.y - 1 );
+            param_rect.y -= 1;
         }
         else if( key == 'l' ) // Right
         {
-            param_rect.x = min( param_img->width - param_rect.width, param_rect.x + 1);
+            param_rect.x += 1;
         }
         else if( key == 'y' ) // Shrink width
         {
@@ -632,18 +627,21 @@ int main( int argc, char *argv[] )
             //param_rect.width += 2;
             param_rect.width += 1;
         }
-        else if( key == 'r' ) // Rotate
+        else if( key == 'R' ) // Rotate
         {
             param_rotate += 1;
             param_rotate = (param_rotate >= 360) ? param_rotate - 360 : param_rotate;
         }
-        else if( key == 'R' ) // Inverse Rotate
+        else if( key == 'r' ) // Inverse Rotate
         {
             param_rotate -= 1;
             param_rotate = (param_rotate < 0) ? 360 + param_rotate : param_rotate;
         }
         else if( key == 'w' ) // Shear
         {
+            // @todo: Orientation is not good enough. 
+            // Having shear_x and shear_y would be better although 
+            // combination with rotation can make it do. 
             param_shear += 1;
             param_shear = (param_shear >= 360) ? param_shear - 360 : param_shear;
         }
@@ -698,14 +696,12 @@ int main( int argc, char *argv[] )
             if( param_circle.width != 0 )
             {
                 param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
-                CvRect rect = cvValidateRect( param_rect, param_img->width, param_img->height );
-                cvShowCroppedImage( param_miniw_name, param_img, rect, param_rotate, param_shear );
+                cvShowCroppedImage( param_miniw_name, param_img, param_rect, param_rotate, param_shear );
             }
             else
             {
-                CvRect rect = cvValidateRect( param_rect, param_img->width, param_img->height );
-                cvShowImageAndRectangle( param_w_name, param_img, rect, param_rotate, param_shear );
-                cvShowCroppedImage( param_miniw_name, param_img, rect, param_rotate, param_shear );
+                cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
+                cvShowCroppedImage( param_miniw_name, param_img, param_rect, param_rotate, param_shear );
             }
         }
     }
