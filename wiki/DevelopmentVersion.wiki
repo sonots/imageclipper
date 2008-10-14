@@ -23,7 +23,7 @@ PS. It may be required to install [http://www.microsoft.com/downloads/details.as
   * You will initialize a region to clip by dragging left mouse button
   * You can move or resize your selected region by hotkeys or dragging right mouse button. 
   * You will see the region to be clipped on the different small window. (This helps you to determine a clipping region.)
-  * You will see the same region marker on the next image too. (This helps you to choose the next clipping region especially when you are processing video.)
+  * You will see the same region marker on the next image too. (This helps you to choose the next clipping region especially when you are processing a video.)
   * You can select the output image filename format (command line)
 
 =How to Use (Application Usage)=
