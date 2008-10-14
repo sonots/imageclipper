@@ -22,7 +22,8 @@ PS. It may be required to install [http://www.microsoft.com/downloads/details.as
   * Clipping and moving to the next image can be done by one button (SPACE)
   * You will initialize a region to clip by dragging left mouse button
   * You can move or resize your selected region by hotkeys or dragging right mouse button. 
-  * Your selected region is shown on the next image too. 
+  * You will see the region to be clipped on the different small window. (This helps you to determine a clipping region.)
+  * You will see the same region marker on the next image too. (This helps you to choose the next clipping region especially when you are processing video.)
   * You can select the output image filename format (command line)
 
 =How to Use (Application Usage)=
@@ -53,11 +54,11 @@ When you move to the next image, you will see a rectangle that you made before a
 
 The clipped images are saved as
 {{{
-<dirname>/imageclipper/<basename>_<left_upper_x>_<left_upper_y>_<width>_<height>.png
+<dirname>/imageclipper/<basename>_<rotation_degree>_<left_upper_x>_<left_upper_y>_<width>_<height>.png
 }}}
 such as
 {{{
-../myimages/imageclipper/lena.jpg_0109_0093_0065_0090.png
+../myimages/imageclipper/lena.jpg_0359_0109_0093_0065_0090.png
 }}}
 when the original filename is ../myimages/lena.jpg. 
 This software creates a directory "imageclipper" under the directory (folder) where the input image is located and store images under the directory as a default.  
@@ -99,21 +100,20 @@ Command Usage: imageclipper.exe [option]... [reference]
             %y - upper-left y coord
             %w - width
             %h - height
+            %r - rotation degree
+            %s - shear deformation degree
             %f - frame number (for video)
         Example) ./$i_%04x_%04y_%04w_%04h.%e
             Store into software directory and use image type of the original.
         Supported Image Type)
             bmp|dib|jpeg|jpg|jpe|png|pbm|pgm|ppm|sr|ras|tiff|exr|jp2
-    -i <imgout_format = %d/imageclipper/%i.%e_%04x_%04y_%04w_%04h.png>
+    -i <imgout_format = %d/imageclipper/%i.%e_%04r_%04x_%04y_%04w_%04h.png>
         Determine the output file path format for image inputs.
-    -v <vidout_format = %d/imageclipper/%i.%e_%04f_%04x_%04y_%04w_%04h.png>
+    -v <vidout_format = %d/imageclipper/%i.%e_%04f_%04r_%04x_%04y_%04w_%04h.png>
         Determine the output file path format for a video input.
     -h
     --help
         Show this help
-    -s
-    --show
-        Show clipped image
 }}}
 
 You may make a batch file (Windows) or a shell script or an alias (Linux) to setup default values. Use of -i and -v rather than -f would be useful in that case. 
