@@ -68,7 +68,7 @@ You can choose a different image type by specifying a different file extension. 
 
 I chose PNG to be the default image type because the PNG is lossless but good compression. 
 
-*New!*
+*Experimental Feature!*
 
 You can choose a rectangular region surrounding a continuous color region by dragging middle mouse button or <SHIFT> + left mouse button. 
 You will see a circle to adjust area roughly and OpenCV cvWatershed function automatically detects a continuous color region. 
