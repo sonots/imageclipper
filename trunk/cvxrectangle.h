@@ -35,7 +35,15 @@
 // @param CvRect [rect = cvRect(0,0,1,1)] The translation (x, y) and scaling (width, height) parameter
 // @param double [rotate = 0]             The rotation parameter in degree
 // @param double [shear = 0]              The shear deformation orientation parameter in degree
+// @todo shear orientation would be not enough, having shear_x, shear_y is much easier to control
 // @return void
+// @Book{Hartley2004,
+//    author = "Hartley, R.~I. and Zisserman, A.",
+//    title = "Multiple View Geometry in Computer Vision",
+//    edition = "Second",
+//    year = "2004",
+//    publisher = "Cambridge University Press, ISBN: 0521540518"
+// } 
 */
 CVAPI(void) cvCreateAffine( CvMat* affine, CvRect rect, double rotate = 0, double shear = 0 )
 {
@@ -50,8 +58,11 @@ CVAPI(void) cvCreateAffine( CvMat* affine, CvRect rect, double rotate = 0, doubl
     CvMat* scale     = cvCreateMat( 2, 2, CV_32FC1 );
     CvMat* pos_shear = cvCreateMat( 2, 2, CV_32FC1 );
 
+    // [ a b tx 
+    //   c d ty ]
     cvmSet( affine, 0, 2, rect.x );
     cvmSet( affine, 1, 2, rect.y );
+    // [a b; c d] = Rotation * Shear(-phi) * Scale * Shear(phi)
     cvZero( scale );
     cvmSet( scale, 0, 0, rect.width );
     cvmSet( scale, 1, 1, rect.height );
@@ -87,6 +98,95 @@ CVAPI(void) cvCreateAffine( CvMat* affine, CvRect rect, double rotate = 0, doubl
 }
 
 /**
+// Create a rectangle mask image
+//
+// @param IplImage* mask            The mask image (Single channel, IPL_DEPTH_8U) to be created. 0 or 1 values
+// @param CvRect    rect            The rectangle region
+// @param CvMat*    [affine = NULL] The affine transform matrix
+// @param bool      [fill = true]   Fill the rectangle region or not
+// @return void
+*/
+//CVAPI(void) cvCreateImageROI( IplImage* mask, const CvRect& rect, CvMat* _affine = NULL, bool fill = true )
+//{
+//    CV_FUNCNAME( "cvCreateImageROI" );
+//    __BEGIN__;
+//
+//    int x, y, xp, yp;
+//    CvMat* affine = NULL;
+//    CvMat* xy  = cvCreateMat( 3, 1, CV_32FC1 ); 
+//    CvMat* xyp = cvCreateMat( 2, 1, CV_32FC1 );
+//
+//    if( _affine != NULL )
+//    {
+//        CV_ASSERT( _affine->rows == 2 && _affine->cols == 3 );
+//        affine = _affine;
+//    }
+//    else
+//    {
+//        affine = cvCreateMat( 2, 3, CV_32FC1 );
+//        cvZero( affine );
+//        cvmSet( affine, 0, 0, 1.0 );
+//        cvmSet( affine, 1, 1, 1.0 );
+//        // No transform
+//    }
+//    cvZero( mask );
+//    cvmSet( xy, 2, 0, 1.0 );
+//
+//
+//    if( fill )
+//    {
+//        for( x = 0; x < rect.width; x++ )
+//        {
+//            cvmSet( xy, 0, 0, x );
+//            for( y = 0; y < rect.height; y++ )
+//            {
+//                cvmSet( xy, 1, 0, y );
+//                cvMatMul( affine, xy, xyp );
+//                xp = (int)cvmGet( xyp, 0, 0 );
+//                yp = (int)cvmGet( xyp, 1, 0 );
+//                if( xp < 0 || xp >= mask->width || yp < 0 || yp >= mask->height ) continue;
+//                mask->imageData[mask->widthStep * yp + xp] = 1;
+//            }
+//        }
+//    }
+//    else
+//    {
+//        for( x = 0; x < rect.width; x++ )
+//        {
+//            cvmSet( xy, 0, 0, x );
+//            for( y = 0; y < rect.height; y += max(1, rect.height - 1) )
+//            {
+//                cvmSet( xy, 1, 0, y );
+//                cvMatMul( affine, xy, xyp );
+//                xp = (int)cvmGet( xyp, 0, 0 );
+//                yp = (int)cvmGet( xyp, 1, 0 );
+//                if( xp < 0 || xp >= mask->width || yp < 0 || yp >= mask->height ) continue;
+//                mask->imageData[mask->widthStep * yp + xp] = 1;
+//            }
+//        }
+//        for( y = 0; y < rect.height; y++ )
+//        {
+//            cvmSet( xy, 1, 0, y );
+//            for( x = 0; x < rect.width; x += max( 1, rect.width - 1) )
+//            {
+//                cvmSet( xy, 0, 0, x );
+//                cvMatMul( affine, xy, xyp );
+//                xp = (int)cvmGet( xyp, 0, 0 );
+//                yp = (int)cvmGet( xyp, 1, 0 );
+//                if( xp < 0 || xp >= mask->width || yp < 0 || yp >= mask->height ) continue;
+//                mask->imageData[mask->widthStep * yp + xp] = 1;
+//            }
+//        }
+//    }
+//
+//    if( _affine == NULL ) cvReleaseMat( &affine );
+//    cvReleaseMat( &xy );
+//    cvReleaseMat( &xyp );
+//
+//    __END__;
+//}
+
+/**
 // Crop image with rotated and sheared rectangle (affine transformation of (0,0,1,1) rectangle)
 //
 // @param IplImage* img       The target image
@@ -120,8 +220,8 @@ CVAPI(void) cvCropImageROI( IplImage* img, IplImage* dst, CvRect rect, double ro
         CvMat* affine = cvCreateMat( 2, 3, CV_32FC1 );
         CvMat* xy     = cvCreateMat( 3, 1, CV_32FC1 );
         CvMat* xyp    = cvCreateMat( 2, 1, CV_32FC1 );
-        cvmSet( xy, 2, 0, 1.0 );
         cvCreateAffine( affine, rect, rotate, shear );
+        cvmSet( xy, 2, 0, 1.0 );
         cvZero( dst );
 
         for( x = 0; x < rect.width; x++ )
@@ -155,8 +255,12 @@ CVAPI(void) cvCropImageROI( IplImage* img, IplImage* dst, CvRect rect, double ro
 // @param CvRect rect         The translation (x, y) and scaling (width, height) parameter or the rectangle region
 // @param double [rotate = 0] The rotation parameter in degree
 // @param double [shear = 0]  The shear deformation orientation parameter in degree
-// @param CvScalar color      The color
-// @todo support thickness, line_type, shift
+// @param CvScalar  [color  = CV_RGB(255, 255, 0)] 
+//                                  Line color (RGB) or brightness (grayscale image). 
+// @todo: Below parameters are available only when rotate == 0 && shear == 0 currently. 
+// @param int       [thickness = 1] Thickness of lines that make up the rectangle. Negative values, e.g. CV_FILLED, make the function to draw a filled rectangle. 
+// @param int       [line_type = 8] Type of the line, see cvLine description. 
+// @param int       [shift = 0]     Number of fractional bits in the point coordinates. 
 // @return void
 */
 CVAPI(void) cvDrawRectangle( IplImage* img, CvRect rect, double rotate = 0, double shear = 0, 
@@ -221,32 +325,72 @@ CVAPI(void) cvDrawRectangle( IplImage* img, CvRect rect, double rotate = 0, doub
 }
 
 
-// Trivial inline functions
+/**
+// Compute Norm between two points
+//
+// @param CvPoint p1              A point 1
+// @param CVPoint p2              A point 2
+// @param int [norm_type = CV_L2] CV_L2 to compute L2 norm (euclidean distance)
+//                                CV_L1 to compute L1 norm (abs)
+// @return double
+*/
 CV_INLINE double cvPointNorm( CvPoint p1, CvPoint p2, int norm_type = CV_L2 )
 {
-    // support only sqrt( sum( (p1 - p2)^2 ) )
-    return sqrt( pow( (double)p2.x - p1.x, 2 ) + pow( (double)p2.y - p1.y, 2 ) );
+    if( norm_type == CV_L2 )
+        return sqrt( pow( (double)p2.x - p1.x, 2 ) + pow( (double)p2.y - p1.y, 2 ) );
+    else if( norm_type == CV_L1 )
+        return abs( p2.x - p1.x ) + abs( p2.y - p1.y );
 }
 
+/**
+// Print cvRect parameters
+//
+// @param CvRect rect
+// @return void
+*/
 CV_INLINE void cvPrintRect( const CvRect &rect )
 {
     printf( "%d %d %d %d\n", rect.x, rect.y, rect.width, rect.height );
 }
 
+/**
+// Show Image and Rectangle
+//
+// @param char*     w_name          Window name
+// @param IplImage* img             Image to be shown
+// @param CvRect    rect            Rectangle to be shown
+// @param double    [rotate = 0]    Rotation degree of rectangle
+// @param double    [shear  = 0]    Shear deformation orientation in degree of rectangle
+// @param CvScalar  [color  = CV_RGB(255, 255, 0)] 
+//                                  Line color (RGB) or brightness (grayscale image). 
+// @todo: Below parameters are available only when rotate == 0 && shear == 0 currently. 
+// @param int       [thickness = 1] Thickness of lines that make up the rectangle. Negative values, e.g. CV_FILLED, make the function to draw a filled rectangle. 
+// @param int       [line_type = 8] Type of the line, see cvLine description. 
+// @param int       [shift = 0]     Number of fractional bits in the point coordinates. 
+// @return void
+// @uses cvDrawRectangle
+*/
 CV_INLINE void cvShowImageAndRectangle( const char* w_name, const IplImage* img, const CvRect& rect, double rotate = 0, double shear = 0,
                                        CvScalar color = CV_RGB(255, 255, 0), int thickness = 1, int line_type = 8, int shift = 0)
 {
-    if( rect.width <= 0 || rect.height <= 0 )
-    {
-        cvShowImage( w_name, img );
-        return;
-    }
+    if( rect.width <= 0 || rect.height <= 0 ) { cvShowImage( w_name, img ); return; }
     IplImage* clone = cvCloneImage( img );
     cvDrawRectangle( clone, rect, rotate, shear, color, thickness, line_type, shift );
     cvShowImage( w_name, clone );
     cvReleaseImage( &clone );
 }
 
+/**
+// Show Cropped Image
+//
+// @param char*     w_name          Window name
+// @param IplImage* orig            Image to be cropped
+// @param CvRect    rect            Rectangle region to crop
+// @param double    [rotate = 0]    Rotation degree of rectangle
+// @param double    [shear  = 0]    Shear deformation orientation in degree of rectangle
+// @return void
+// @uses cvCropImageROI
+*/
 CV_INLINE void cvShowCroppedImage( const char* w_name, IplImage* orig, const CvRect rect, double rotate = 0, double shear = 0 )
 {
     if( rect.width <= 0 || rect.height <= 0 ) return;
@@ -256,21 +400,33 @@ CV_INLINE void cvShowCroppedImage( const char* w_name, IplImage* orig, const CvR
     cvReleaseImage( &crop );
 }
 
+/**
 // If the rectangle runs off outside image, pick only inside regions
-CV_INLINE CvRect cvValidateRect( CvRect rect, int max_width, int max_height )
+//
+// @param CvRect rect
+// @param CvPoint max
+// @return CvRect
+*/
+CV_INLINE CvRect cvValidateRect( CvRect rect, CvPoint max )
 {
-    if( rect.x < 0 )
+    if( rect.x < 0 ) // left side is outside boundary
     {
-        rect.width += rect.x;
-        rect.x = 0; // += rect.x
+        rect.width += rect.x; // width is reduced
+        rect.x = 0;
     }
-    if( rect.y < 0 )
+    if( rect.y < 0 ) // top side is outside boundary
     {
-        rect.height += rect.y;
+        rect.height += rect.y; // height is reduced
         rect.y = 0;
     }
-    rect.width = min( max_width - rect.x, rect.width );
-    rect.height = min( max_height - rect.y, rect.height );
+    if( rect.x + rect.width >= max.x ) // right side is outside boundary
+    {
+        rect.width = max.x - rect.x;
+    }
+    if( rect.y + rect.height >= max.y ) // bottom side is outside boundary
+    {
+        rect.height = max.y - rect.y;
+    }
     return rect;
 }
 
