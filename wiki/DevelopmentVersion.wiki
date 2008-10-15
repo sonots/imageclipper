@@ -283,7 +283,9 @@ Or you can generate a file without creating "clipping.txt" as
 $ \ls imageclipper/*_*_* | perl haartrainingformat.pl --ls --trim --basename | tee info.dat
 }}}
 
-Note that a file of this format is required for testing, but clipped images themselves are enough or better for training in fact. See [http://note.sonots.com/SciSoftware/haartraining.html#o40a43fd Tutorial: OpenCV haartraining]
+Note that clipped images themselves are enough and better for training phase
+(See [http://note.sonots.com/SciSoftware/haartraining.html#o40a43fd Tutorial: OpenCV haartraining]).  
+Therefore, you may use this only for creation of testing data. 
 
 Usage
 {{{
