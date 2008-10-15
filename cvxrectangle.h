@@ -105,6 +105,7 @@ CVAPI(void) cvCropImageROI( IplImage* img, IplImage* dst, CvRect rect, double ro
     CV_ASSERT( dst->width == rect.width );
     CV_ASSERT( dst->height == rect.height );
 
+
     if( rotate == 0 && shear == 0 && 
         rect.x >= 0 && rect.y >= 0 && 
         rect.x + rect.width < img->width && rect.y + rect.height < img->height )
@@ -132,7 +133,7 @@ CVAPI(void) cvCropImageROI( IplImage* img, IplImage* dst, CvRect rect, double ro
                 cvMatMul( affine, xy, xyp );
                 xp = (int)cvmGet( xyp, 0, 0 );
                 yp = (int)cvmGet( xyp, 1, 0 );
-                if( xp < 0 || xp > img->width || yp < 0 || yp > img->height ) continue;
+                if( xp < 0 || xp >= img->width || yp < 0 || yp >= img->height ) continue;
                 for( z = 0; z < img->nChannels; z++ )
                 {
                     dst->imageData[dst->widthStep * y + x * dst->nChannels + z]
@@ -189,7 +190,7 @@ CVAPI(void) cvDrawRectangle( IplImage* img, CvRect rect, double rotate = 0, doub
                 cvMatMul( affine, xy, xyp );
                 xp = (int)cvmGet( xyp, 0, 0 );
                 yp = (int)cvmGet( xyp, 1, 0 );
-                if( xp < 0 || xp > img->width || yp < 0 || yp > img->height ) continue;
+                if( xp < 0 || xp >= img->width || yp < 0 || yp >= img->height ) continue;
                 for( z = 0; z < img->nChannels; z++ )
                 {
                     img->imageData[img->widthStep * yp + xp * img->nChannels + z] = (char)color.val[z];
@@ -205,7 +206,7 @@ CVAPI(void) cvDrawRectangle( IplImage* img, CvRect rect, double rotate = 0, doub
                 cvMatMul( affine, xy, xyp );
                 xp = (int)cvmGet( xyp, 0, 0 );
                 yp = (int)cvmGet( xyp, 1, 0 );
-                if( xp < 0 || xp > img->width || yp < 0 || yp > img->height ) continue;
+                if( xp < 0 || xp >= img->width || yp < 0 || yp >= img->height ) continue;
                 for( z = 0; z < img->nChannels; z++ )
                 {
                     img->imageData[img->widthStep * yp + xp * img->nChannels + z] = (char)color.val[z];
