@@ -589,80 +589,118 @@ int main( int argc, char *argv[] )
         // Rectangle Movement (Vi like hotkeys)
         else if( key == 'h' ) // Left
         {
-            param_rect.x -= 1;
+            if( param_circle.width > 0 )
+                param_circle.x -= 1;
+            else
+                param_rect.x -= 1;
         }
         else if( key == 'j' ) // Down
         {
-            param_rect.y += 1;
+            if( param_circle.width > 0 )
+                param_circle.y += 1;
+            else
+                param_rect.y += 1;
         }
         else if( key == 'k' ) // Up
         {
-            param_rect.y -= 1;
+            if( param_circle.width > 0 )
+                param_circle.y -= 1;
+            else
+                param_rect.y -= 1;
         }
         else if( key == 'l' ) // Right
         {
-            param_rect.x += 1;
+            if( param_circle.width > 0 )
+                param_circle.x += 1;
+            else
+                param_rect.x += 1;
         }
         else if( key == 'y' ) // Shrink width
         {
-            //param_rect.x = min( param_img->width, param_rect.x + 1 );
-            //param_rect.width = max( 0, param_rect.width - 2 );
-            param_rect.width = max( 0, param_rect.width - 1 );
+            if( param_circle.width > 0 )
+                param_circle.width -= 1;
+            else
+                param_rect.width = max( 0, param_rect.width - 1 );
         }
         else if( key == 'u' ) // Expand height
         {
-            //param_rect.y = max( 0, param_rect.y - 1 );
-            //param_rect.height += 2;
-            param_rect.height += 1;
+            if( param_circle.width > 0 )
+                param_circle.width += 1;
+            else
+                param_rect.height += 1;
         }
         else if( key == 'i' ) // Shrink height
         {
-            //param_rect.y = min( param_img->height, param_rect.y + 1 );
-            //param_rect.height = max( 0, param_rect.height - 2 );
-            param_rect.height = max( 0, param_rect.height - 1 );
+            if( param_circle.width > 0 )
+                param_circle.width -= 1;
+            else
+                param_rect.height = max( 0, param_rect.height - 1 );
         }
         else if( key == 'o' ) // Expand width
         {
-            //param_rect.x = max( 0, param_rect.x - 1 );
-            //param_rect.width += 2;
-            param_rect.width += 1;
+            if( param_circle.width > 0 )
+                param_circle.width += 1;
+            else
+                param_rect.width += 1;
         }
         else if( key == 'R' ) // Rotate
         {
-            param_rotate += 1;
-            param_rotate = (param_rotate >= 360) ? param_rotate - 360 : param_rotate;
+            if( param_circle.width == 0 )
+            {
+                param_rotate += 1;
+                param_rotate = (param_rotate >= 360) ? param_rotate - 360 : param_rotate;
+            }
         }
         else if( key == 'r' ) // Inverse Rotate
         {
-            param_rotate -= 1;
-            param_rotate = (param_rotate < 0) ? 360 + param_rotate : param_rotate;
+            if( param_circle.width == 0 )
+            {
+                param_rotate -= 1;
+                param_rotate = (param_rotate < 0) ? 360 + param_rotate : param_rotate;
+            }
         }
         else if( key == 'w' ) // Shear
         {
             // @todo: Orientation is not good enough. 
             // Having shear_x and shear_y would be better although 
             // combination with rotation can make it do. 
-            param_shear += 1;
-            param_shear = (param_shear >= 360) ? param_shear - 360 : param_shear;
+            if( param_circle.width == 0 )
+            {
+                param_shear += 1;
+                param_shear = (param_shear >= 360) ? param_shear - 360 : param_shear;
+            }
         }
         else if( key == 'W' ) // Inverse Shear
         {
-            param_shear -= 1;
-            param_shear = (param_shear < 0) ? 360 + param_shear : param_shear;
+            if( param_circle.width == 0 )
+            {
+                param_shear -= 1;
+                param_shear = (param_shear < 0) ? 360 + param_shear : param_shear;
+            }
         }
         else if( key == 'e' ) // Expand
         {
-            param_rect.x = max( 0, param_rect.x - 1 );
-            param_rect.width += 2;
-            param_rect.y = max( 0, param_rect.y - 1 );
-            param_rect.height += 2;
+            if( param_circle.width > 0 )
+                param_circle.width += 1;
+            else
+            {
+                param_rect.x = max( 0, param_rect.x - 1 );
+                param_rect.width += 2;
+                param_rect.y = max( 0, param_rect.y - 1 );
+                param_rect.height += 2;
+            }
         }
         else if( key == 'E' ) // Shrink
         {
-            param_rect.x = min( param_img->width, param_rect.x + 1 );
-            param_rect.width = max( 0, param_rect.width - 2 );
-            param_rect.y = min( param_img->height, param_rect.y + 1 );
-            param_rect.height = max( 0, param_rect.height - 2 );
+            if( param_circle.width > 0 )
+                param_circle.width -= 1;
+            else
+            {
+                param_rect.x = min( param_img->width, param_rect.x + 1 );
+                param_rect.width = max( 0, param_rect.width - 2 );
+                param_rect.y = min( param_img->height, param_rect.y + 1 );
+                param_rect.height = max( 0, param_rect.height - 2 );
+            }
         }
         /*
         if( key == 'e' || key == 'E' ) // Expansion and Shrink so that ratio does not change
