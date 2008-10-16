@@ -336,10 +336,10 @@ CVAPI(void) cvDrawRectangle( IplImage* img, CvRect rect, double rotate = 0, doub
 */
 CV_INLINE double cvPointNorm( CvPoint p1, CvPoint p2, int norm_type = CV_L2 )
 {
-    if( norm_type == CV_L2 )
-        return sqrt( pow( (double)p2.x - p1.x, 2 ) + pow( (double)p2.y - p1.y, 2 ) );
-    else if( norm_type == CV_L1 )
+    if( norm_type == CV_L1 )
         return abs( p2.x - p1.x ) + abs( p2.y - p1.y );
+    else
+        return sqrt( pow( (double)p2.x - p1.x, 2 ) + pow( (double)p2.y - p1.y, 2 ) );
 }
 
 /**
