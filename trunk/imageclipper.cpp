@@ -348,18 +348,22 @@ void usage( const char* com, const fs::path &reference, const char* imgout_forma
     cerr << "      bmp|dib|jpeg|jpg|jpe|png|pbm|pgm|ppm|sr|ras|tiff|exr|jp2" << endl;
     cerr << endl;
     cerr << "Application Usage:" << endl;
-    cerr << "    Select a region by dragging the left mouse button." << endl;
-    cerr << "    Move the region by dragging the right mouse button." << endl;
-    cerr << "    Use following keys to clip the selected region:" << endl;
-    cerr << "    s (save)        : Save the selected region as an image." << endl;
-    cerr << "    f (forward)     : Forward. Show next image." << endl;
-    cerr << "    SPACE           : Save and Forward." << endl;
-    cerr << "    b (backward)    : Backward. Not available for video file (now)." << endl;
-    cerr << "    q (quit) or ESC : Quit. " << endl;
-    cerr << "    h (left) j (down) k (up) l (right): Move rectangle." << endl;
-    cerr << "    y (left) u (down) i (up) o (right): Resize rectangle." << endl;
-    cerr << "    e (expand) E (shrink)             : Resize rectangle keeping ratio." << endl;
-    cerr << "    r (rotate clockwise) R (counter)  : Rotate rectangle." << endl;
+    cerr << "  Mouse Usage:" << endl;
+    cerr << "    Left  (select)          : Select or initialize a rectangle region." << endl;
+    cerr << "    Right (move or resize)  : Move by dragging inside the rectangle." << endl;
+    cerr << "                            : Resize by draggin outside the rectangle." << endl;
+    cerr << "    Middle or SHIFT + Left  : Initialize the watershed marker. Drag it. " << endl;
+    cerr << "  Keyboard Usage:" << endl;
+    cerr << "    s (save)                : Save the selected region as an image." << endl;
+    cerr << "    f (forward)             : Forward. Show next image." << endl;
+    cerr << "    SPACE                   : Save and Forward." << endl;
+    cerr << "    b (backward)            : Backward. Not available for video file (now)." << endl;
+    cerr << "    q (quit) or ESC         : Quit. " << endl;
+    cerr << "    r (rotate) R (counter)  : Rotate rectangle in clockwise." << endl;
+    cerr << "    e (expand) E (shrink)   : Expand the recntagle size." << endl;
+    cerr << "    w (shear)  W (counter)  : Shear deformation orientation (Experimental)." << endl;
+    cerr << "    h (left) j (down) k (up) l (right) : Move rectangle." << endl;
+    cerr << "    y (left) u (down) i (up) o (right) : Resize rectangle (Move boundaries)." << endl;
 }
 
 int main( int argc, char *argv[] )
