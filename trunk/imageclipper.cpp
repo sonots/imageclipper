@@ -41,7 +41,7 @@
 #include <vector>
 #include "get_filelist.h"
 #include "convert_format.h"
-#include "cvxrectangle.h"
+#include "cvrectangle.h"
 using namespace std;
 namespace fs = boost::filesystem;
 
@@ -306,64 +306,64 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
 void usage( const char* com, const fs::path &reference, const char* imgout_format,
            const char* vidout_format, const CvRect &initial_rect )
 {
-    cerr << "ImageClipper - image clipping helper tool." << endl;
-    cerr << "Command Usage: " << fs::path( com ).leaf();
-    cerr << " [option]... [reference]" << endl;
-    cerr << "  <reference = " << reference << ">" << endl;
-    cerr << "    <reference> would be a directory or an image or a video filename." << endl;
-    cerr << "    For a directory, image files in the directory will be read sequentially." << endl;
-    cerr << "    For an image (a file having supported image type extensions listed below), " << endl;
-    cerr << "    it starts to read a directory from the specified image file. " << endl;
-    cerr << "    For a video (a file except images), the video is read." << endl;
-    cerr << endl;
-    cerr << "  Options" << endl;
-    cerr << "    -o <output_format = imgout_format or vidout_format>" << endl;
-    cerr << "        Determine the output file path format." << endl;
-    cerr << "        This is a syntax sugar for -i and -v. " << endl;
-    cerr << "        Format Expression)" << endl;
-    cerr << "            %d - dirname of the original" << endl;
-    cerr << "            %i - filename of the original without extension" << endl;
-    cerr << "            %e - filename extension of the original" << endl;
-    cerr << "            %x - upper-left x coord" << endl;
-    cerr << "            %y - upper-left y coord" << endl;
-    cerr << "            %w - width" << endl;
-    cerr << "            %h - height" << endl;
-    cerr << "            %r - rotation degree" << endl;
-    cerr << "            %s - shear deformation degree" << endl;
-    cerr << "            %f - frame number (for video)" << endl;
-    cerr << "        Example) ./$i_%04x_%04y_%04w_%04h.%e" << endl;
-    cerr << "            Store into software directory and use image type of the original." << endl;
-    cerr << "    -i <imgout_format = " << imgout_format << ">" << endl;
-    cerr << "        Determine the output file path format for image inputs." << endl;
-    cerr << "    -v <vidout_format = " << vidout_format << ">" << endl;
-    cerr << "        Determine the output file path format for a video input." << endl;
-    cerr << "    -r <initial_rect = " << initial_rect.x << " " << initial_rect.y << " "
+    cout << "ImageClipper - image clipping helper tool." << endl;
+    cout << "Command Usage: " << fs::path( com ).leaf();
+    cout << " [option]... [reference]" << endl;
+    cout << "  <reference = " << reference << ">" << endl;
+    cout << "    <reference> would be a directory or an image or a video filename." << endl;
+    cout << "    For a directory, image files in the directory will be read sequentially." << endl;
+    cout << "    For an image, it starts to read a directory from the specified image file. " << endl;
+    cout << "    (A file is judged as an image based on its extension filename.)" << endl;
+    cout << "    A file except images is treated as a video and read frame by frame. " << endl;
+    cout << endl;
+    cout << "  Options" << endl;
+    cout << "    -o <output_format = imgout_format or vidout_format>" << endl;
+    cout << "        Determine the output file path format." << endl;
+    cout << "        This is a syntax sugar for -i and -v. " << endl;
+    cout << "        Format Expression)" << endl;
+    cout << "            %d - dirname of the original" << endl;
+    cout << "            %i - filename of the original without extension" << endl;
+    cout << "            %e - filename extension of the original" << endl;
+    cout << "            %x - upper-left x coord" << endl;
+    cout << "            %y - upper-left y coord" << endl;
+    cout << "            %w - width" << endl;
+    cout << "            %h - height" << endl;
+    cout << "            %r - rotation degree" << endl;
+    cout << "            %s - shear deformation degree" << endl;
+    cout << "            %f - frame number (for video)" << endl;
+    cout << "        Example) ./$i_%04x_%04y_%04w_%04h.%e" << endl;
+    cout << "            Store into software directory and use image type of the original." << endl;
+    cout << "    -i <imgout_format = " << imgout_format << ">" << endl;
+    cout << "        Determine the output file path format for image inputs." << endl;
+    cout << "    -v <vidout_format = " << vidout_format << ">" << endl;
+    cout << "        Determine the output file path format for a video input." << endl;
+    cout << "    -r <initial_rect = " << initial_rect.x << " " << initial_rect.y << " "
         << initial_rect.width << " " << initial_rect.height << ">" << endl;
-    cerr << "        Determine the initial rectnagle (left_x top_y width height)." << endl;
-    cerr << "    -h" << endl;
-    cerr << "    --help" << endl;
-    cerr << "        Show this help" << endl;
-    cerr << endl;
-    cerr << "  Supported Image Types" << endl;
-    cerr << "      bmp|dib|jpeg|jpg|jpe|png|pbm|pgm|ppm|sr|ras|tiff|exr|jp2" << endl;
-    cerr << endl;
-    cerr << "Application Usage:" << endl;
-    cerr << "  Mouse Usage:" << endl;
-    cerr << "    Left  (select)          : Select or initialize a rectangle region." << endl;
-    cerr << "    Right (move or resize)  : Move by dragging inside the rectangle." << endl;
-    cerr << "                            : Resize by draggin outside the rectangle." << endl;
-    cerr << "    Middle or SHIFT + Left  : Initialize the watershed marker. Drag it. " << endl;
-    cerr << "  Keyboard Usage:" << endl;
-    cerr << "    s (save)                : Save the selected region as an image." << endl;
-    cerr << "    f (forward)             : Forward. Show next image." << endl;
-    cerr << "    SPACE                   : Save and Forward." << endl;
-    cerr << "    b (backward)            : Backward. Not available for video file (now)." << endl;
-    cerr << "    q (quit) or ESC         : Quit. " << endl;
-    cerr << "    r (rotate) R (counter)  : Rotate rectangle in clockwise." << endl;
-    cerr << "    e (expand) E (shrink)   : Expand the recntagle size." << endl;
-    cerr << "    w (shear)  W (counter)  : Shear deformation orientation (Experimental)." << endl;
-    cerr << "    h (left) j (down) k (up) l (right) : Move rectangle." << endl;
-    cerr << "    y (left) u (down) i (up) o (right) : Resize rectangle (Move boundaries)." << endl;
+    cout << "        Determine the initial rectnagle (left_x top_y width height)." << endl;
+    cout << "    -h" << endl;
+    cout << "    --help" << endl;
+    cout << "        Show this help" << endl;
+    cout << endl;
+    cout << "  Supported Image Types" << endl;
+    cout << "      bmp|dib|jpeg|jpg|jpe|png|pbm|pgm|ppm|sr|ras|tiff|exr|jp2" << endl;
+    cout << endl;
+    cout << "Application Usage:" << endl;
+    cout << "  Mouse Usage:" << endl;
+    cout << "    Left  (select)          : Select or initialize a rectangle region." << endl;
+    cout << "    Right (move or resize)  : Move by dragging inside the rectangle." << endl;
+    cout << "                              Resize by draggin outside the rectangle." << endl;
+    cout << "    Middle or SHIFT + Left  : Initialize the watershed marker. Drag it. " << endl;
+    cout << "  Keyboard Usage:" << endl;
+    cout << "    s (save)                : Save the selected region as an image." << endl;
+    cout << "    f (forward)             : Forward. Show next image." << endl;
+    cout << "    SPACE                   : Save and Forward." << endl;
+    cout << "    b (backward)            : Backward. Not available for video file (now)." << endl;
+    cout << "    q (quit) or ESC         : Quit. " << endl;
+    cout << "    r (rotate) R (counter)  : Rotate rectangle in clockwise." << endl;
+    cout << "    e (expand) E (shrink)   : Expand the recntagle size." << endl;
+    cout << "    w (shear)  W (counter)  : Shear deformation orientation (Experimental)." << endl;
+    cout << "    h (left) j (down) k (up) l (right) : Move rectangle." << endl;
+    cout << "    y (left) u (down) i (up) o (right) : Resize rectangle (Move boundaries)." << endl;
 }
 
 int main( int argc, char *argv[] )

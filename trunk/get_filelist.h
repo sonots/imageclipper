@@ -40,47 +40,36 @@ namespace fs = boost::filesystem;
 *
 * Memo: boost::filesystem::path path.native_file_string().c_str()
 */
-vector<fs::path> get_filelist( const fs::path& dirpath, 
-                              const boost::regex regex = boost::regex(".*"), 
-                              fs::file_type file_type = fs::type_unknown )
+vector<fs::path> 
+get_filelist(const fs::path& dirpath, 
+             const boost::regex regex = boost::regex(".*"), 
+             fs::file_type file_type = fs::type_unknown)
 {
     vector<fs::path> filelist;
-    bool list_directory    = ( file_type == fs::directory_file );
-    bool list_regular_file = ( file_type == fs::regular_file );
-    bool list_symlink      = ( file_type == fs::symlink_file );
-    bool list_other        = ( !list_directory && !list_regular_file && !list_symlink );
-    bool list_all          = ( file_type == fs::type_unknown ); // just for now
+    bool list_directory    = (file_type == fs::directory_file);
+    bool list_regular_file = (file_type == fs::regular_file);
+    bool list_symlink      = (file_type == fs::symlink_file);
+    bool list_other        = (!list_directory && !list_regular_file && !list_symlink);
+    bool list_all          = (file_type == fs::type_unknown); // just for now
 
-    if( !fs::exists( dirpath ) || !fs::is_directory( dirpath ) )
-    {
+    if(!fs::exists(dirpath) || !fs::is_directory(dirpath)) {
         return filelist;
     }
 
-    fs::directory_iterator iter( dirpath ), end_iter;
-    for( ; iter != end_iter; ++iter )
-    {
+    fs::directory_iterator iter(dirpath), end_iter;
+    for(; iter != end_iter; ++iter) {
         fs::path filename = iter->path();
-        if( boost::regex_match( filename.native_file_string(), regex ) )
-        {
-            if( list_all )
-            {
-                filelist.push_back( filename );
-            }
-            else if( list_regular_file && fs::is_regular( filename ) )
-            {
-                filelist.push_back( filename );                
-            }
-            else if( list_directory && fs::is_directory( filename ) )
-            {
-                filelist.push_back( filename );
-            }
-            else if( list_symlink && fs::is_symlink( filename ) )
-            {
-                filelist.push_back( filename );
-            }
-            else if( list_other && fs::is_other( filename ) )
-            {
-                filelist.push_back( filename );
+        if(boost::regex_match(filename.native_file_string(), regex)) {
+            if(list_all) {
+                filelist.push_back(filename);
+            } else if(list_regular_file && fs::is_regular(filename)) {
+                filelist.push_back(filename);                
+            } else if(list_directory && fs::is_directory(filename)) {
+                filelist.push_back(filename);
+            } else if(list_symlink && fs::is_symlink(filename)) {
+                filelist.push_back(filename);
+            } else if(list_other && fs::is_other(filename)) {
+                filelist.push_back(filename);
             }
         }
     }
