@@ -363,7 +363,7 @@ void app_usage()
     cout << "    s (save)                : Save the selected region as an image." << endl;
     cout << "    f (forward)             : Forward. Show next image." << endl;
     cout << "    SPACE                   : Save and Forward." << endl;
-    cout << "    b (backward)            : Backward. Not available for video file (now)." << endl;
+    cout << "    b (backward)            : Backward. " << endl;
     cout << "    q (quit) or ESC         : Quit. " << endl;
     cout << "    r (rotate) R (counter)  : Rotate rectangle in clockwise." << endl;
     cout << "    e (expand) E (shrink)   : Expand the recntagle size." << endl;
@@ -480,18 +480,16 @@ int main( int argc, char *argv[] )
         }
         cerr << "Now reading a video..... ";
         cap = cvCaptureFromFile( reference.native_file_string().c_str() );
-        for( int i = 0; i < frame; i++ )
+        cvSetCaptureProperty( cap, CV_CAP_PROP_POS_FRAMES, frame - 1 );
+        img = cvQueryFrame( cap );
+        if( img == NULL )
         {
-            img = cvQueryFrame( cap );
-            if( img == NULL )
-            {
-                cerr << "The file " << reference.native_file_string() << " was assumed as a video, but not loadable." << endl << endl;
-                usage( argv[0], reference, imgout_format, vidout_format, initial_rect );
-                exit(1);
-            }
+            cerr << "The file " << reference.native_file_string() << " was assumed as a video, but not loadable." << endl << endl;
+            usage( argv[0], reference, imgout_format, vidout_format, initial_rect );
+            exit(1);
         }
         cerr << "Done!" << endl;
-        cerr << "Now showing the frame " << frame << endl;
+        cerr << "Now showing " << reference.native_file_string() << " " << frame << endl;
 #if defined(WIN32) || defined(WIN64)
         img->origin = 0;
         cvFlip( img );
@@ -556,10 +554,11 @@ int main( int argc, char *argv[] )
         {
             if( is_video )
             {
-                IplImage* tmpimg;
-                if( tmpimg = cvQueryFrame( cap ) )
+                IplImage* tmpimg = cvQueryFrame( cap );
+                if( tmpimg != NULL )
+                //if( frame < cvGetCaptureProperty( cap, CV_CAP_PROP_FRAME_COUNT ) )
                 {
-                    param_img = tmpimg;
+                    param_img = tmpimg; 
 #if defined(WIN32) || defined(WIN64)
                     param_img->origin = 0;
                     cvFlip( param_img );
@@ -582,7 +581,22 @@ int main( int argc, char *argv[] )
         // Backward
         else if( key == 'b' )
         {
-            if( !is_video )
+            if( is_video )
+            {
+                IplImage* tmpimg;
+                frame = max( 1, frame - 1 );
+                cvSetCaptureProperty( cap, CV_CAP_PROP_POS_FRAMES, frame - 1 );
+                if( tmpimg = cvQueryFrame( cap ) )
+                {
+                    param_img = tmpimg;
+#if defined(WIN32) || defined(WIN64)
+                    param_img->origin = 0;
+                    cvFlip( param_img );
+#endif
+                    cout << "Now showing " << reference.native_file_string() << " " <<  frame << endl;
+                }
+            }
+            else
             {
                 if( filename != filelist.begin() ) 
                 {
