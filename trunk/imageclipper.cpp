@@ -346,7 +346,13 @@ void usage( const char* com, const fs::path &reference, const char* imgout_forma
     cout << endl;
     cout << "  Supported Image Types" << endl;
     cout << "      bmp|dib|jpeg|jpg|jpe|png|pbm|pgm|ppm|sr|ras|tiff|exr|jp2" << endl;
-    cout << endl;
+}
+
+/**
+* Print Application Usage
+*/
+void app_usage()
+{
     cout << "Application Usage:" << endl;
     cout << "  Mouse Usage:" << endl;
     cout << "    Left  (select)          : Select or initialize a rectangle region." << endl;
@@ -416,6 +422,7 @@ int main( int argc, char *argv[] )
             reference = fs::path( argv[i] );
         }
     }
+    app_usage();
 
     //// Initial argument check
     bool is_directory = fs::is_directory( reference );
@@ -506,6 +513,7 @@ int main( int argc, char *argv[] )
     param_circle     = cvRect(0,0,0,0);
     param_rotate     = 0;
     param_shear      = 0;
+
     cvNamedWindow( param_w_name, CV_WINDOW_AUTOSIZE );
     cvNamedWindow( param_miniw_name, CV_WINDOW_AUTOSIZE );
     cvShowImageAndRectangle( param_w_name, param_img, param_rect, param_rotate, param_shear );
@@ -557,7 +565,7 @@ int main( int argc, char *argv[] )
                     cvFlip( param_img );
 #endif
                     frame++;
-                    cout << reference.native_file_string() << " " <<  frame << endl;
+                    cout << "Now showing " << reference.native_file_string() << " " <<  frame << endl;
                 }
             }
             else
@@ -567,7 +575,7 @@ int main( int argc, char *argv[] )
                     cvReleaseImage( &param_img );
                     filename++;
                     param_img = cvLoadImage( filename->native_file_string().c_str() );
-                    cout << filename->native_file_string() << endl;
+                    cout << "Now showing " << filename->native_file_string() << endl;
                 }
             }
         }
@@ -581,7 +589,7 @@ int main( int argc, char *argv[] )
                     cvReleaseImage( &param_img );
                     filename--;
                     param_img = cvLoadImage( filename->native_file_string().c_str() );
-                    cout << filename->native_file_string() << endl;
+                    cout << "Now showing " << filename->native_file_string() << endl;
                 }
             }
         }
