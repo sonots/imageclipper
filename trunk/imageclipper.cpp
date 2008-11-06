@@ -337,6 +337,9 @@ void usage( const char* com, const fs::path &reference, const char* imgout_forma
     cout << "        Determine the output file path format for image inputs." << endl;
     cout << "    -v <vidout_format = " << vidout_format << ">" << endl;
     cout << "        Determine the output file path format for a video input." << endl;
+    cout << "    -f" << endl;
+    cout << "    --frame <frame = 1> (video)" << endl;
+    cout << "        Determine the frame number of video to start to read." << endl;
     cout << "    -r <initial_rect = " << initial_rect.x << " " << initial_rect.y << " "
         << initial_rect.width << " " << initial_rect.height << ">" << endl;
     cout << "        Determine the initial rectnagle (left_x top_y width height)." << endl;
@@ -489,6 +492,7 @@ int main( int argc, char *argv[] )
             exit(1);
         }
         cerr << "Done!" << endl;
+        cerr << cvGetCaptureProperty( cap, CV_CAP_PROP_FRAME_COUNT ) << " frames totally." << endl;
         cerr << "Now showing " << reference.native_file_string() << " " << frame << endl;
 #if defined(WIN32) || defined(WIN64)
         img->origin = 0;
