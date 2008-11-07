@@ -45,7 +45,6 @@
 // @param CvRect [rect = cvRect(0,0,1,1)] The translation (x, y) and scaling (width, height) parameter
 // @param double [rotate = 0]             The Rotation parameter in degree
 // @param CvPoint [shear = cvPoint(0,0)]  The shear deformation parameter shx and shy
-// @todo shear orientation would be not enough, having shear_x, shear_y is much easier to control
 // @return void
 // @Book{Hartley2004,
 //    author = "Hartley, R.~I. and Zisserman, A.",
@@ -282,7 +281,7 @@ CV_INLINE void cvPrintRect( const CvRect &rect )
 //                                  The shear deformation parameter shx and shy
 // @param CvScalar  [color  = CV_RGB(255, 255, 0)] 
 //                                  Line color (RGB) or brightness (grayscale image). 
-// @todo: Below parameters are available only when rotate == 0 && shear == 0 currently. 
+// @todo: Below parameters are available only when rotate == 0 && shear == cvPoint(0,0) currently. 
 // @param int       [thickness = 1] Thickness of lines that make up the rectangle. Negative values, e.g. CV_FILLED, make the function to draw a filled rectangle. 
 // @param int       [line_type = 8] Type of the line, see cvLine description. 
 // @param int       [shift = 0]     Number of fractional bits in the point coordinates. 
