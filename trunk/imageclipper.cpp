@@ -41,7 +41,7 @@
 #include <vector>
 #include "get_filelist.h"
 #include "convert_format.h"
-#include "cvrectangle.h"
+#include "cvxrectangle.h"
 using namespace std;
 namespace fs = boost::filesystem;
 
