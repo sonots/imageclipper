@@ -67,7 +67,7 @@ IplImage*   param_img;
 CvRect      param_rect;
 CvRect      param_circle;
 int         param_rotate = 0;
-int         param_shear = 0;
+CvPoint     param_shear = cvPoint(0,0);
 
 inline CvRect cvShowImageAndWatershed( const char* w_name, const IplImage* img, const CvRect &circle )
 {
@@ -139,8 +139,8 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
     else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_MBUTTON ||
         ( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_LBUTTON && flags & CV_EVENT_FLAG_SHIFTKEY ) )
     {
-        param_rotate   = 0;
-        param_shear    = 0;
+        param_rotate  = 0;
+        param_shear.x = param_shear.y = 0;
 
         param_circle.width = (int) cvPointNorm( cvPoint( param_circle.x, param_circle.y ), cvPoint( x, y ) );
         param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
@@ -156,7 +156,7 @@ void on_mouse( int event, int x, int y, int flags, void* arg )
     {
         param_circle.width = 0; // disable watershed
         param_rotate       = 0;
-        param_shear        = 0;
+        param_shear.x      = param_shear.y = 0;
 
         param_rect.x = min( point0.x, x );
         param_rect.y = min( point0.y, y );
@@ -370,9 +370,9 @@ void app_usage()
     cout << "    q (quit) or ESC         : Quit. " << endl;
     cout << "    r (rotate) R (counter)  : Rotate rectangle in clockwise." << endl;
     cout << "    e (expand) E (shrink)   : Expand the recntagle size." << endl;
-    cout << "    w (shear)  W (counter)  : Shear deformation orientation (Experimental)." << endl;
     cout << "    h (left) j (down) k (up) l (right) : Move rectangle." << endl;
     cout << "    y (left) u (down) i (up) o (right) : Resize rectangle (Move boundaries)." << endl;
+    cout << "    n (left) m (down) , (up) . (right) : Shear deformation." << endl;
 }
 
 int main( int argc, char *argv[] )
@@ -514,7 +514,7 @@ int main( int argc, char *argv[] )
     param_rect       = initial_rect;
     param_circle     = cvRect(0,0,0,0);
     param_rotate     = 0;
-    param_shear      = 0;
+    param_shear.x    = param_shear.y = 0;
 
     cvNamedWindow( param_w_name, CV_WINDOW_AUTOSIZE );
     cvNamedWindow( param_miniw_name, CV_WINDOW_AUTOSIZE );
@@ -645,6 +645,7 @@ int main( int argc, char *argv[] )
             else
                 param_rect.x += 1;
         }
+        // Rectangle Resize
         else if( key == 'y' ) // Shrink width
         {
             if( param_circle.width > 0 )
@@ -673,7 +674,29 @@ int main( int argc, char *argv[] )
             else
                 param_rect.width += 1;
         }
-        else if( key == 'R' ) // Rotate
+        // Shear Deformation
+        else if( key == 'n' ) // Left
+        {
+            if( param_circle.width == 0 )
+                param_shear.x -= 1;
+        }
+        else if( key == 'm' ) // Down
+        {
+            if( param_circle.width == 0 )
+                param_shear.y += 1;
+        }
+        else if( key == ',' ) // Up
+        {
+            if( param_circle.width == 0 )
+                param_shear.y -= 1;
+        }
+        else if( key == '.' ) // Right
+        {
+            if( param_circle.width == 0 )
+                param_shear.x += 1;
+        }
+        // Rotation
+        else if( key == 'R' ) // Clockwise
         {
             if( param_circle.width == 0 )
             {
@@ -681,31 +704,12 @@ int main( int argc, char *argv[] )
                 param_rotate = (param_rotate >= 360) ? param_rotate - 360 : param_rotate;
             }
         }
-        else if( key == 'r' ) // Inverse Rotate
+        else if( key == 'r' ) // Counter-Clockwise
         {
             if( param_circle.width == 0 )
             {
                 param_rotate -= 1;
                 param_rotate = (param_rotate < 0) ? 360 + param_rotate : param_rotate;
-            }
-        }
-        else if( key == 'w' ) // Shear
-        {
-            // @todo: Orientation is not good enough. 
-            // Having shear_x and shear_y would be better although 
-            // combination with rotation can make it do. 
-            if( param_circle.width == 0 )
-            {
-                param_shear += 1;
-                param_shear = (param_shear >= 360) ? param_shear - 360 : param_shear;
-            }
-        }
-        else if( key == 'W' ) // Inverse Shear
-        {
-            if( param_circle.width == 0 )
-            {
-                param_shear -= 1;
-                param_shear = (param_shear < 0) ? 360 + param_shear : param_shear;
             }
         }
         else if( key == 'e' ) // Expand
