@@ -44,12 +44,12 @@
 * @return string
 */
 string convert_format(const string& format, const string& dirname, const string& filename, const string& extension, 
-                      int x, int y, int width, int height, int frame = 0, int rotation = 0, int shear = 0)
+                      int x, int y, int width, int height, int frame = 0, int rotation = 0, int shear_x = 0, int shear_y = 0)
 {
     string ret = format;
     char tmp[2048];
-    char intkeys[] = { 'x', 'y', 'w', 'h', 'f', 'r', 's' };
-    int  intvals[] = { x, y, width, height, frame, rotation, shear };
+    char intkeys[] = { 'x', 'y', 'w', 'h', 'f', 'r', '.', ',' };
+    int  intvals[] = { x, y, width, height, frame, rotation, shear_x, shear_y };
     char strkeys[] = { 'i', 'e', 'd' };
     std::string strvals[] = { filename, extension, dirname };
     int nintkeys = 7;
