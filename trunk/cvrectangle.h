@@ -22,11 +22,11 @@
 * THE SOFTWARE.
 */
 #ifdef _MSC_VER
-#pragma warning( push )
-#pragma warning( disable : 4996 )
-#pragma comment( lib, "cv.lib" )
-#pragma comment( lib, "cxcore.lib" )
-#pragma comment( lib, "cvaux.lib" )
+#pragma warning(push)
+#pragma warning(disable:4996)
+#pragma comment(lib, "cv.lib")
+#pragma comment(lib, "cxcore.lib")
+#pragma comment(lib, "cvaux.lib")
 #endif
 
 #include "cv.h"
@@ -103,15 +103,15 @@ CVAPI(void) cvCreateAffine( CvMat* affine, CvRect rect = cvRect(0,0,1,1), double
 }
 
 /**
-// Crop image with rotated and sheared rectangle (affine transformation of (0,0,1,1) rectangle)
+// Crop image with rotated and sheared rectangle
 //
-// @param IplImage* img       The target image
-// @param IplImage* dst       The cropped image
+// @param IplImage* img          The target image
+// @param IplImage* dst          The cropped image
 //    IplImage* dst = cvCreateImage( cvSize( rect.width, rect.height ), img->depth, img->nChannels );
-// @param CvRect rect         The translation (x, y) and scaling (width, height) parameter or the rectangle region
-// @param double [rotate = 0] The Rotation parameter in degree
+// @param CvRect    rect         The translation (x, y) and scaling (width, height) parameter or the rectangle region
+// @param double    [rotate = 0] The Rotation parameter in degree
 // @param CvPoint   [shear = cvPoint(0,0)]
-//                            The shear deformation parameter shx and shy
+//                               The shear deformation parameter shx and shy
 // @return void
 */
 CVAPI(void) cvCropImageROI( IplImage* img, IplImage* dst, CvRect rect, double rotate = 0, CvPoint shear = cvPoint(0,0) )
@@ -166,11 +166,11 @@ CVAPI(void) cvCropImageROI( IplImage* img, IplImage* dst, CvRect rect, double ro
 }
 
 /**
-// Draw an rotated and sheared rectangle (affine transformation of (0,0,1,1) rectangle)
+// Draw an rotated and sheared rectangle
 //
 // @param IplImage* img             The image to be drawn rectangle
-// @param CvRect rect               The translation (x, y) and scaling (width, height) parameter or the rectangle region
-// @param double [rotate = 0]       The Rotation parameter in degree
+// @param CvRect    rect            The translation (x, y) and scaling (width, height) parameter or the rectangle region
+// @param double    [rotate = 0]    The Rotation parameter in degree
 // @param CvPoint   [shear = cvPoint(0,0)]
 //                                  The shear deformation parameter shx and shy
 // @param CvScalar  [color  = CV_RGB(255, 255, 0)] 
@@ -440,7 +440,7 @@ CV_INLINE CvRect cvValidateRect( CvRect rect, CvPoint max )
 //}
 
 #ifdef _MSC_VER
-#pragma warning( pop )
+#pragma warning(pop)
 #endif
 
 #endif
