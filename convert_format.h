@@ -50,9 +50,9 @@ string convert_format(const string& format, const string& dirname, const string&
     char tmp[2048];
     char intkeys[] = { 'x', 'y', 'w', 'h', 'f', 'r', '.', ',' };
     int  intvals[] = { x, y, width, height, frame, rotation, shear_x, shear_y };
+    int nintkeys = 8;
     char strkeys[] = { 'i', 'e', 'd' };
     std::string strvals[] = { filename, extension, dirname };
-    int nintkeys = 7;
     int nstrkeys = 3;
     for(int i = 0; i < nintkeys + nstrkeys; i++) {
         std::string::size_type start = ret.find("%");
