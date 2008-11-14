@@ -329,7 +329,8 @@ void usage( const char* com, const fs::path &reference, const char* imgout_forma
     cout << "            %w - width" << endl;
     cout << "            %h - height" << endl;
     cout << "            %r - rotation degree" << endl;
-    cout << "            %s - shear deformation degree" << endl;
+    cout << "            %. - shear deformation in x coord" << endl;
+    cout << "            %, - shear deformation in y coord" << endl;
     cout << "            %f - frame number (for video)" << endl;
     cout << "        Example) ./$i_%04x_%04y_%04w_%04h.%e" << endl;
     cout << "            Store into software directory and use image type of the original." << endl;
@@ -619,28 +620,28 @@ int main( int argc, char *argv[] )
         // Rectangle Movement (Vi like hotkeys)
         else if( key == 'h' ) // Left
         {
-            if( param_circle.width > 0 )
+            if( param_circle.width > 0 ) // wathershed
                 param_circle.x -= 1;
             else
                 param_rect.x -= 1;
         }
         else if( key == 'j' ) // Down
         {
-            if( param_circle.width > 0 )
+            if( param_circle.width > 0 ) // wathershed
                 param_circle.y += 1;
             else
                 param_rect.y += 1;
         }
         else if( key == 'k' ) // Up
         {
-            if( param_circle.width > 0 )
+            if( param_circle.width > 0 ) // wathershed
                 param_circle.y -= 1;
             else
                 param_rect.y -= 1;
         }
         else if( key == 'l' ) // Right
         {
-            if( param_circle.width > 0 )
+            if( param_circle.width > 0 ) // wathershed
                 param_circle.x += 1;
             else
                 param_rect.x += 1;
@@ -648,28 +649,28 @@ int main( int argc, char *argv[] )
         // Rectangle Resize
         else if( key == 'y' ) // Shrink width
         {
-            if( param_circle.width > 0 )
+            if( param_circle.width > 0 ) // wathershed
                 param_circle.width -= 1;
             else
                 param_rect.width = max( 0, param_rect.width - 1 );
         }
         else if( key == 'u' ) // Expand height
         {
-            if( param_circle.width > 0 )
+            if( param_circle.width > 0 ) // wathershed
                 param_circle.width += 1;
             else
                 param_rect.height += 1;
         }
         else if( key == 'i' ) // Shrink height
         {
-            if( param_circle.width > 0 )
+            if( param_circle.width > 0 ) // wathershed
                 param_circle.width -= 1;
             else
                 param_rect.height = max( 0, param_rect.height - 1 );
         }
         else if( key == 'o' ) // Expand width
         {
-            if( param_circle.width > 0 )
+            if( param_circle.width > 0 ) // wathershed
                 param_circle.width += 1;
             else
                 param_rect.width += 1;
@@ -677,44 +678,34 @@ int main( int argc, char *argv[] )
         // Shear Deformation
         else if( key == 'n' ) // Left
         {
-            if( param_circle.width == 0 )
-                param_shear.x -= 1;
+            param_shear.x -= 1;
         }
         else if( key == 'm' ) // Down
         {
-            if( param_circle.width == 0 )
-                param_shear.y += 1;
+            param_shear.y += 1;
         }
         else if( key == ',' ) // Up
         {
-            if( param_circle.width == 0 )
-                param_shear.y -= 1;
+            param_shear.y -= 1;
         }
         else if( key == '.' ) // Right
         {
-            if( param_circle.width == 0 )
-                param_shear.x += 1;
+            param_shear.x += 1;
         }
         // Rotation
         else if( key == 'R' ) // Clockwise
         {
-            if( param_circle.width == 0 )
-            {
-                param_rotate += 1;
-                param_rotate = (param_rotate >= 360) ? param_rotate - 360 : param_rotate;
-            }
+            param_rotate += 1;
+            param_rotate = (param_rotate >= 360) ? param_rotate - 360 : param_rotate;
         }
         else if( key == 'r' ) // Counter-Clockwise
         {
-            if( param_circle.width == 0 )
-            {
-                param_rotate -= 1;
-                param_rotate = (param_rotate < 0) ? 360 + param_rotate : param_rotate;
-            }
+            param_rotate -= 1;
+            param_rotate = (param_rotate < 0) ? 360 + param_rotate : param_rotate;
         }
         else if( key == 'e' ) // Expand
         {
-            if( param_circle.width > 0 )
+            if( param_circle.width > 0 ) // watershed
                 param_circle.width += 1;
             else
             {
@@ -726,7 +717,7 @@ int main( int argc, char *argv[] )
         }
         else if( key == 'E' ) // Shrink
         {
-            if( param_circle.width > 0 )
+            if( param_circle.width > 0 ) // wathershed
                 param_circle.width -= 1;
             else
             {
@@ -765,7 +756,7 @@ int main( int argc, char *argv[] )
 
         if( param_img )
         {
-            if( param_circle.width != 0 )
+            if( param_circle.width > 0 ) // wathershed
             {
                 param_rect = cvShowImageAndWatershed( param_w_name, param_img, param_circle );
                 cvShowCroppedImage( param_miniw_name, param_img, param_rect, param_rotate, param_shear );

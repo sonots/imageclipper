@@ -37,7 +37,8 @@
 * %w => width
 * %h => height
 * %r => rotation (int degree)
-* %s => shear deformation degree (int degree)
+* %. => shear deformation in x coordinate
+* %, => shear deformation in y coordinate
 * %f => frame number (for video file)
 *
 * @param format The format string
