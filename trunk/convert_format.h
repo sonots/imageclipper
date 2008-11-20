@@ -1,4 +1,4 @@
-/**
+/** @file
 * The MIT License
 * 
 * Copyright (c) 2008, Naotoshi Seo <sonots(at)umd.edu>
@@ -21,27 +21,39 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 * THE SOFTWARE.
 */
-#include <stdio.h>
-#include <string>
 
 #ifndef CONVERT_FORMAT_INCLUDED
 #define CONVERT_FORMAT_INCLUDED
 
+#include <stdio.h>
+#include <string>
+
 /**
-* Convert format
-*
-* %i => filename
-* %e => extension
-* %x => x
-* %y => y
-* %w => width
-* %h => height
-* %r => rotation (int degree)
-* %. => shear deformation in x coordinate
-* %, => shear deformation in y coordinate
-* %f => frame number (for video file)
+* Convert format to string
 *
 * @param format The format string
+* - \%d => dirname
+* - \%i => filename
+* - \%e => extension
+* - \%x => x
+* - \%y => y
+* - \%w => width
+* - \%h => height
+* - \%f => frame number (for video file)
+* - \%r => rotation (int degree)
+* - \%. => shear deformation in x coordinate
+* - \%, => shear deformation in y coordinate
+* @param dirname The directoryname
+* @param filename The filename excluding file extension
+* @param extension The file extension
+* @param x
+* @param y
+* @param width
+* @param height
+* @param frame
+* @param rotation
+* @param shear_x
+* @param shear_y
 * @return string
 */
 string convert_format(const string& format, const string& dirname, const string& filename, const string& extension, 
