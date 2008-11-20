@@ -1,4 +1,4 @@
-/**
+/** @file
 * The MIT License
 * 
 * Copyright (c) 2008, Naotoshi Seo <sonots(at)umd.edu>
@@ -21,6 +21,9 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 * THE SOFTWARE.
 */
+#ifndef CV_RECTANGLE_INCLUDED
+#define CV_RECTANGLE_INCLUDED
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4996)
@@ -35,24 +38,21 @@
 #include <stdio.h>
 #include <math.h>
 
-#ifndef CV_RECTANGLE_INCLUDED
-#define CV_RECTANGLE_INCLUDED
-
 /**
-// Create a affine transform matrix
-//
-// @param CvMat* affine                   The 2 x 3 CV_32FC1|CV_64FC1 affine matrix to be created
-// @param CvRect [rect = cvRect(0,0,1,1)] The translation (x, y) and scaling (width, height) parameter
-// @param double [rotate = 0]             The Rotation parameter in degree
-// @param CvPoint [shear = cvPoint(0,0)]  The shear deformation parameter shx and shy
-// @return void
-// @Book{Hartley2004,
-//    author = "Hartley, R.~I. and Zisserman, A.",
-//    title = "Multiple View Geometry in Computer Vision",
-//    edition = "Second",
-//    year = "2004",
-//    publisher = "Cambridge University Press, ISBN: 0521540518"
-// } 
+* Create a affine transform matrix
+*
+* @param affine  The 2 x 3 CV_32FC1|CV_64FC1 affine matrix to be created
+* @param rect    The translation (x, y) and scaling (width, height) parameter
+* @param rotate  he Rotation parameter in degree
+* @param shear   The shear deformation parameter sh_x and sh_y
+* @return void
+* @see @BOOK{Hartley2004,
+*    author = "Hartley, R.~I. and Zisserman, A.",
+*    title = "Multiple View Geometry in Computer Vision",
+*    edition = "Second",
+*    year = "2004",
+*    publisher = "Cambridge University Press, ISBN: 0521540518"
+* } 
 */
 CVAPI(void) cvCreateAffine( CvMat* affine, CvRect rect = cvRect(0,0,1,1), double rotate = 0, CvPoint shear = cvPoint(0,0) )
 {
