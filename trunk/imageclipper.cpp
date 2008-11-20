@@ -693,12 +693,12 @@ int main( int argc, char *argv[] )
             param_shear.x += 1;
         }
         // Rotation
-        else if( key == 'R' ) // Clockwise
+        else if( key == 'R' ) // Counter-Clockwise
         {
             param_rotate += 1;
             param_rotate = (param_rotate >= 360) ? param_rotate - 360 : param_rotate;
         }
-        else if( key == 'r' ) // Counter-Clockwise
+        else if( key == 'r' ) // Clockwise
         {
             param_rotate -= 1;
             param_rotate = (param_rotate < 0) ? 360 + param_rotate : param_rotate;

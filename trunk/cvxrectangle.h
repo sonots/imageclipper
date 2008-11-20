@@ -43,7 +43,7 @@
 *
 * @param affine  The 2 x 3 CV_32FC1|CV_64FC1 affine matrix to be created
 * @param rect    The translation (x, y) and scaling (width, height) parameter
-* @param rotate  he Rotation parameter in degree
+* @param rotate  he Rotation parameter in degree. Positive values mean couter-clockwise rotation
 * @param shear   The shear deformation parameter sh_x and sh_y
 * @return void
 * @see @BOOK{Hartley2004,
@@ -76,7 +76,7 @@ CVAPI(void) cvCreateAffine( CvMat* affine, CvRect rect = cvRect(0,0,1,1), double
     cvmSet( affine, 0, 2, rect.x );
     cvmSet( affine, 1, 2, rect.y );
     // [a b; c d] = Rotation * [sx shx; shy sy]
-    // Rotation
+    // Rotation // Positive values mean couter-clockwise rotation // rotation in degree
     cv2DRotationMatrix( cvPoint2D32f( 0, 0 ), rotate, 1.0, RotationMatrix );
     cvmSet( Rotation, 0, 0, cvmGet( RotationMatrix, 0, 0 ) );
     cvmSet( Rotation, 0, 1, cvmGet( RotationMatrix, 0, 1 ) );
@@ -108,7 +108,7 @@ CVAPI(void) cvCreateAffine( CvMat* affine, CvRect rect = cvRect(0,0,1,1), double
 // @param IplImage* dst          The cropped image
 //    IplImage* dst = cvCreateImage( cvSize( rect.width, rect.height ), img->depth, img->nChannels );
 // @param CvRect    rect         The translation (x, y) and scaling (width, height) parameter or the rectangle region
-// @param double    [rotate = 0] The Rotation parameter in degree
+// @param double    [rotate = 0] The Rotation parameter in degree. Positive values mean couter-clockwise rotation
 // @param CvPoint   [shear = cvPoint(0,0)]
 //                               The shear deformation parameter shx and shy
 // @return void
@@ -169,7 +169,7 @@ CVAPI(void) cvCropImageROI( IplImage* img, IplImage* dst, CvRect rect, double ro
 //
 // @param IplImage* img             The image to be drawn rectangle
 // @param CvRect    rect            The translation (x, y) and scaling (width, height) parameter or the rectangle region
-// @param double    [rotate = 0]    The Rotation parameter in degree
+// @param double    [rotate = 0]    The Rotation parameter in degree. Positive values mean couter-clockwise rotation
 // @param CvPoint   [shear = cvPoint(0,0)]
 //                                  The shear deformation parameter shx and shy
 // @param CvScalar  [color  = CV_RGB(255, 255, 0)] 
@@ -276,7 +276,7 @@ CV_INLINE void cvPrintRect( const CvRect &rect )
 // @param char*     w_name          Window name
 // @param IplImage* img             Image to be shown
 // @param CvRect    rect            Rectangle to be shown
-// @param double    [rotate = 0]    Rotation degree of rectangle
+// @param double    [rotate = 0]    Rotation degree of rectangle. Positive values mean couter-clockwise rotation
 // @param CvPoint   [shear = cvPoint(0,0)]
 //                                  The shear deformation parameter shx and shy
 // @param CvScalar  [color  = CV_RGB(255, 255, 0)] 
@@ -304,7 +304,7 @@ CV_INLINE void cvShowImageAndRectangle( const char* w_name, const IplImage* img,
 // @param char*     w_name          Window name
 // @param IplImage* orig            Image to be cropped
 // @param CvRect    rect            Rectangle region to crop
-// @param double    [rotate = 0]    Rotation degree of rectangle
+// @param double    [rotate = 0]    Rotation degree of rectangle. Positive values mean couter-clockwise rotation
 // @param CvPoint   [shear = cvPoint(0,0)]
 //                                  The shear deformation parameter shx and shy
 // @return void
