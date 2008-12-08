@@ -63,12 +63,18 @@ typedef struct CvCallbackParam {
     int rotate;
     CvPoint shear;
     vector<string> imtypes;
+    vector<string> filelist; // for image or directory load
+    vector<string>::iterator fileiter;
+    CvCapture* cap;          // for video load
+    int frame;               // video iter
+    const char* output_format;
 } CvCallbackParam ;
 
 /**
 * Command Argument structure
 */
 typedef struct ArgParam {
+    const char* name;
     string reference;
     const char* imgout_format;
     const char* vidout_format;
@@ -78,10 +84,11 @@ typedef struct ArgParam {
 
 /************************* Function Prototypes *********************************/
 void arg_parse( int argc, char** argv, ArgParam* arg = NULL );
-void usage( const char* name, ArgParam* arg = NULL );
+void usage( const ArgParam* arg );
 void gui_usage();
-void mouse_callback( int event, int x, int y, int flags, void* arg );
-void key_callback( CvCapture* cap, vector<string>::iterator fileiter, vector<string>& filelist, CvCallbackParam* param, ArgParam* arg );
+void mouse_callback( int event, int x, int y, int flags, void* _param );
+void load_reference( const ArgParam* arg, CvCallbackParam* param );
+void key_callback( const ArgParam* arg, CvCallbackParam* param );
 
 /************************* Main ************************************************/
 
@@ -96,7 +103,11 @@ int main( int argc, char *argv[] )
         cvRect(0,0,0,0),
         0,
         cvPoint(0,0),
-        vector<string>()
+        vector<string>(),
+        vector<string>(),
+        vector<string>::iterator(),
+        NULL,
+        0
     };
     CvCallbackParam* param = &init_param;
     param->imtypes.push_back( "bmp" );
@@ -115,6 +126,7 @@ int main( int argc, char *argv[] )
     param->imtypes.push_back( "jp2" );
 
     ArgParam init_arg = {
+        argv[0],
         ".",
         "%d/imageclipper/%i.%e_%04r_%04x_%04y_%04w_%04h.png",
         "%d/imageclipper/%i.%e_%04f_%04r_%04x_%04y_%04w_%04h.png",
@@ -126,103 +138,103 @@ int main( int argc, char *argv[] )
     // parse arguments
     arg_parse( argc, argv, arg );
     gui_usage();
+    load_reference( arg, param );
 
-    // argument checks and read filelist (or video)
+    // Mouse and Key callback
+    cvNamedWindow( param->w_name, CV_WINDOW_AUTOSIZE );
+    cvNamedWindow( param->miniw_name, CV_WINDOW_AUTOSIZE );
+    cvSetMouseCallback( param->w_name, mouse_callback, param );
+    key_callback( arg, param );
+    cvDestroyWindow( param->w_name );
+    cvDestroyWindow( param->miniw_name );
+}
+
+void load_reference( const ArgParam* arg, CvCallbackParam* param )
+{
     bool is_directory = fs::is_directory( arg->reference );
     bool is_image = fs::match_extensions( arg->reference, param->imtypes );
     bool is_video = !is_directory & !is_image;
-    if( arg->output_format == NULL )
-    {
-        arg->output_format = is_video ? arg->vidout_format : arg->imgout_format;
-    }
+    param->output_format = ( arg->output_format != NULL ? arg->output_format : 
+        ( is_video ? arg->vidout_format : arg->imgout_format ) );
+    param->frame = arg->frame;
 
-    vector<string> filelist; // for image
-    vector<string>::iterator fileiter; // for image
-    CvCapture* cap = NULL; // for video
     if( is_directory || is_image )
     {
         cerr << "Now reading a directory..... ";
         if( is_directory )
         {
-            filelist = fs::filelist( arg->reference, param->imtypes, "file" );
-            if( filelist.empty() )
+            param->filelist = fs::filelist( arg->reference, param->imtypes, "file" );
+            if( param->filelist.empty() )
             {
                 cerr << "No image file exist under a directory " << fs::realpath( arg->reference ) << endl << endl;
-                usage( argv[0], arg );
+                usage( arg );
                 exit(1);
             }
-            fileiter = filelist.begin();
+            param->fileiter = param->filelist.begin();
         }
         else
         {
             if( !fs::exists( arg->reference ) )
             {
                 cerr << "The image file " << fs::realpath( arg->reference ) << " does not exist." << endl << endl;
-                usage( argv[0], arg );
+                usage( arg );
                 exit(1);
             }
-            filelist = fs::filelist( fs::dirname( arg->reference ), param->imtypes, "file" );
+            param->filelist = fs::filelist( fs::dirname( arg->reference ), param->imtypes, "file" );
             // step up till specified file
-            for( fileiter = filelist.begin(); fileiter != filelist.end(); fileiter++ )
+            for( param->fileiter = param->filelist.begin(); param->fileiter != param->filelist.end(); param->fileiter++ )
             {
-                if( fs::realpath( *fileiter ) == fs::realpath( arg->reference ) ) break;
+                if( fs::realpath( *param->fileiter ) == fs::realpath( arg->reference ) ) break;
             }
         }
         cerr << "Done!" << endl;
-        cerr << "Now showing " << fs::realpath( *fileiter ) << endl;
-        param->img = cvLoadImage( fs::realpath( *fileiter ).c_str() );
+        cerr << "Now showing " << fs::realpath( *param->fileiter ) << endl;
+        param->img = cvLoadImage( fs::realpath( *param->fileiter ).c_str() );
     }
     else if( is_video )
     {
         if ( !fs::exists( arg->reference ) )
         {
             cerr << "The file " << fs::realpath( arg->reference ) << " does not exist or is not readable." << endl << endl;
-            usage( argv[0], arg );
+            usage( arg );
             exit(1);
         }
         cerr << "Now reading a video..... ";
-        cap = cvCaptureFromFile( fs::realpath( arg->reference ).c_str() );
-        cvSetCaptureProperty( cap, CV_CAP_PROP_POS_FRAMES, arg->frame - 1 );
-        param->img = cvQueryFrame( cap );
+        param->cap = cvCaptureFromFile( fs::realpath( arg->reference ).c_str() );
+        cvSetCaptureProperty( param->cap, CV_CAP_PROP_POS_FRAMES, arg->frame - 1 );
+        param->img = cvQueryFrame( param->cap );
         if( param->img == NULL )
         {
             cerr << "The file " << fs::realpath( arg->reference ) << " was assumed as a video, but not loadable." << endl << endl;
-            usage( argv[0], arg );
+            usage( arg );
             exit(1);
         }
         cerr << "Done!" << endl;
-        cerr << cvGetCaptureProperty( cap, CV_CAP_PROP_FRAME_COUNT ) << " frames totally." << endl;
+        cerr << cvGetCaptureProperty( param->cap, CV_CAP_PROP_FRAME_COUNT ) << " frames totally." << endl;
         cerr << "Now showing " << fs::realpath( arg->reference ) << " " << arg->frame << endl;
-#if defined(WIN32) || defined(WIN64)
-        param->img->origin = 0;
-        cvFlip( param->img );
-#endif
+//#if defined(WIN32) || defined(WIN64) // for bug of OpenCV 1.0
+//        param->img->origin = 0;
+//        cvFlip( param->img );
+//#endif
     }
     else
     {
         cerr << "The directory " << fs::realpath( arg->reference ) << " does not exist." << endl << endl;
-        usage( argv[0], arg );
+        usage( arg );
         exit(1);
     }
-
-    // Mouse and Key callback
-    cvNamedWindow( param->w_name, CV_WINDOW_AUTOSIZE );
-    cvNamedWindow( param->miniw_name, CV_WINDOW_AUTOSIZE );
-    cvShowCroppedImage( param->miniw_name, param->img, 
-                        cvRect32fFromRect( param->rect, param->rotate ), 
-                        cvPointTo32f( param->shear ) );
-    cvShowImageAndRectangle( param->w_name, param->img, 
-                             cvRect32fFromRect( param->rect, param->rotate ), 
-                             cvPointTo32f( param->shear ) );
-    cvSetMouseCallback( param->w_name, mouse_callback, param );
-    key_callback( cap, fileiter, filelist, param, arg );
-    cvDestroyWindow( param->w_name );
-    cvDestroyWindow( param->miniw_name );
 }
 
-void key_callback( CvCapture* cap, vector<string>::iterator fileiter, vector<string>& filelist, CvCallbackParam* param, ArgParam* arg )
+void key_callback( const ArgParam* arg, CvCallbackParam* param )
 {
-    string filename = cap != NULL ? arg->reference : *fileiter;
+    string filename = param->cap == NULL ? *param->fileiter : arg->reference;
+
+    cvShowCroppedImage( param->miniw_name, param->img, 
+        cvRect32fFromRect( param->rect, param->rotate ), 
+        cvPointTo32f( param->shear ) );
+    cvShowImageAndRectangle( param->w_name, param->img, 
+        cvRect32fFromRect( param->rect, param->rotate ), 
+        cvPointTo32f( param->shear ) );
 
     while( true ) // key callback
     {
@@ -234,10 +246,10 @@ void key_callback( CvCapture* cap, vector<string>::iterator fileiter, vector<str
             if( param->rect.width > 0 && param->rect.height > 0 )
             {
                 string output_path = ic::sprintf( 
-                    arg->output_format, fs::dirname( filename ), 
+                    param->output_format, fs::dirname( filename ), 
                     fs::filename( filename ), fs::extension( filename ),
                     param->rect.x, param->rect.y, param->rect.width, param->rect.height, 
-                    arg->frame, param->rotate );
+                    param->frame, param->rotate );
 
                 if( !fs::match_extensions( output_path, param->imtypes ) )
                 {
@@ -260,28 +272,28 @@ void key_callback( CvCapture* cap, vector<string>::iterator fileiter, vector<str
         // Forward
         if( key == 'f' || key == 32 ) // 32 is SPACE
         {
-            if( cap )
+            if( param->cap )
             {
-                IplImage* tmpimg = cvQueryFrame( cap );
+                IplImage* tmpimg = cvQueryFrame( param->cap );
                 if( tmpimg != NULL )
-                //if( frame < cvGetCaptureProperty( cap, CV_CAP_PROP_FRAME_COUNT ) )
+                //if( frame < cvGetCaptureProperty( param->cap, CV_CAP_PROP_FRAME_COUNT ) )
                 {
                     param->img = tmpimg; 
-#if defined(WIN32) || defined(WIN64)
-                    param->img->origin = 0;
-                    cvFlip( param->img );
-#endif
-                    arg->frame++;
-                    cout << "Now showing " << fs::realpath( filename ) << " " <<  arg->frame << endl;
+//#if defined(WIN32) || defined(WIN64) // for bug of OpenCV 1.0
+//                  param->img->origin = 0;
+//                  cvFlip( param->img );
+//#endif
+                    param->frame++;
+                    cout << "Now showing " << fs::realpath( filename ) << " " <<  param->frame << endl;
                 }
             }
             else
             {
-                if( fileiter + 1 != filelist.end() )
+                if( param->fileiter + 1 != param->filelist.end() )
                 {
                     cvReleaseImage( &param->img );
-                    fileiter++;
-                    filename = *fileiter;
+                    param->fileiter++;
+                    filename = *param->fileiter;
                     param->img = cvLoadImage( fs::realpath( filename ).c_str() );
                     cout << "Now showing " << fs::realpath( filename ) << endl;
                 }
@@ -290,28 +302,28 @@ void key_callback( CvCapture* cap, vector<string>::iterator fileiter, vector<str
         // Backward
         else if( key == 'b' )
         {
-            if( cap )
+            if( param->cap )
             {
                 IplImage* tmpimg;
-                arg->frame = max( 1, arg->frame - 1 );
-                cvSetCaptureProperty( cap, CV_CAP_PROP_POS_FRAMES, arg->frame - 1 );
-                if( tmpimg = cvQueryFrame( cap ) )
+                param->frame = max( 1, param->frame - 1 );
+                cvSetCaptureProperty( param->cap, CV_CAP_PROP_POS_FRAMES, param->frame - 1 );
+                if( tmpimg = cvQueryFrame( param->cap ) )
                 {
                     param->img = tmpimg;
-#if defined(WIN32) || defined(WIN64)
-                    param->img->origin = 0;
-                    cvFlip( param->img );
-#endif
-                    cout << "Now showing " << fs::realpath( filename ) << " " <<  arg->frame << endl;
+//#if defined(WIN32) || defined(WIN64) // for bug of OpenCV 1.0
+//                  param->img->origin = 0;
+//                  cvFlip( param->img );
+//#endif
+                    cout << "Now showing " << fs::realpath( filename ) << " " <<  param->frame << endl;
                 }
             }
             else
             {
-                if( fileiter != filelist.begin() ) 
+                if( param->fileiter != param->filelist.begin() ) 
                 {
                     cvReleaseImage( &param->img );
-                    fileiter--;
-                    filename = *fileiter;
+                    param->fileiter--;
+                    filename = *param->fileiter;
                     param->img = cvLoadImage( fs::realpath( filename ).c_str() );
                     cout << "Now showing " << fs::realpath( filename ) << endl;
                 }
@@ -527,9 +539,9 @@ void key_callback( CvCapture* cap, vector<string>::iterator fileiter, vector<str
 /**
 * cvSetMouseCallback function
 */
-void mouse_callback( int event, int x, int y, int flags, void* arg )
+void mouse_callback( int event, int x, int y, int flags, void* _param )
 {
-    CvCallbackParam* param = (CvCallbackParam*)arg;
+    CvCallbackParam* param = (CvCallbackParam*)_param;
     static CvPoint point0          = cvPoint( 0, 0 );
     static bool move_rect          = false;
     static bool resize_rect_left   = false;
@@ -734,11 +746,12 @@ void mouse_callback( int event, int x, int y, int flags, void* arg )
  */
 void arg_parse( int argc, char** argv, ArgParam *arg )
 {
+    arg->name = argv[0];
     for( int i = 1; i < argc; i++ )
     {
         if( !strcmp( argv[i], "-h" ) || !strcmp( argv[i], "--help" ) )
         {
-            usage( argv[0], arg );
+            usage( arg );
             return;
         } 
         else if( !strcmp( argv[i], "-o" ) || !strcmp( argv[i], "--output_format" ) )
@@ -767,10 +780,10 @@ void arg_parse( int argc, char** argv, ArgParam *arg )
 /**
 * Print out usage
 */
-void usage( const char* name, ArgParam* arg )
+void usage( const ArgParam* arg )
 {
     cout << "ImageClipper - image clipping helper tool." << endl;
-    cout << "Command Usage: " << fs::basename( name );
+    cout << "Command Usage: " << fs::basename( arg->name );
     cout << " [option]... [arg_reference]" << endl;
     cout << "  <arg_reference = " << arg->reference << ">" << endl;
     cout << "    <arg_reference> would be a directory or an image or a video filename." << endl;
