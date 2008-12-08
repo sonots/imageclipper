@@ -25,3 +25,6 @@ check:
 
 clean:
 	rm -f imageclipper *.o
+
+install:
+	cp imageclipper ~/usr/bin/
