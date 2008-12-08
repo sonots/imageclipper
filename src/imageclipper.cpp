@@ -322,155 +322,196 @@ void key_callback( CvCapture* cap, vector<string>::iterator fileiter, vector<str
         {
             break;
         }
-        // Rectangle Movement (Vi like hotkeys)
-        else if( key == 'h' ) // Left
-        {
-            if( param->circle.width > 0 ) // wathershed
-                param->circle.x -= 1;
-            else
-                param->rect.x -= 1;
-        }
-        else if( key == 'j' ) // Down
-        {
-            if( param->circle.width > 0 ) // wathershed
-                param->circle.y += 1;
-            else
-                param->rect.y += 1;
-        }
-        else if( key == 'k' ) // Up
-        {
-            if( param->circle.width > 0 ) // wathershed
-                param->circle.y -= 1;
-            else
-                param->rect.y -= 1;
-        }
-        else if( key == 'l' ) // Right
-        {
-            if( param->circle.width > 0 ) // wathershed
-                param->circle.x += 1;
-            else
-                param->rect.x += 1;
-        }
-        // Rectangle Resize
-        else if( key == 'y' ) // Shrink width
-        {
-            if( param->circle.width > 0 ) // wathershed
-                param->circle.width -= 1;
-            else
-                param->rect.width = max( 0, param->rect.width - 1 );
-        }
-        else if( key == 'u' ) // Expand height
-        {
-            if( param->circle.width > 0 ) // wathershed
-                param->circle.width += 1;
-            else
-                param->rect.height += 1;
-        }
-        else if( key == 'i' ) // Shrink height
-        {
-            if( param->circle.width > 0 ) // wathershed
-                param->circle.width -= 1;
-            else
-                param->rect.height = max( 0, param->rect.height - 1 );
-        }
-        else if( key == 'o' ) // Expand width
-        {
-            if( param->circle.width > 0 ) // wathershed
-                param->circle.width += 1;
-            else
-                param->rect.width += 1;
-        }
-        // Shear Deformation
-        else if( key == 'n' ) // Left
-        {
-            param->shear.x -= 1;
-        }
-        else if( key == 'm' ) // Down
-        {
-            param->shear.y += 1;
-        }
-        else if( key == ',' ) // Up
-        {
-            param->shear.y -= 1;
-        }
-        else if( key == '.' ) // Right
-        {
-            param->shear.x += 1;
-        }
-        // Rotation
-        else if( key == 'R' ) // Counter-Clockwise
-        {
-            param->rotate += 1;
-            param->rotate = (param->rotate >= 360) ? param->rotate - 360 : param->rotate;
-        }
-        else if( key == 'r' ) // Clockwise
-        {
-            param->rotate -= 1;
-            param->rotate = (param->rotate < 0) ? 360 + param->rotate : param->rotate;
-        }
-        else if( key == 'e' ) // Expand
-        {
-            if( param->circle.width > 0 ) // watershed
-                param->circle.width += 1;
-            else
-            {
-                param->rect.x = max( 0, param->rect.x - 1 );
-                param->rect.width += 2;
-                param->rect.y = max( 0, param->rect.y - 1 );
-                param->rect.height += 2;
-            }
-        }
-        else if( key == 'E' ) // Shrink
-        {
-            if( param->circle.width > 0 ) // wathershed
-                param->circle.width -= 1;
-            else
-            {
-                param->rect.x = min( param->img->width, param->rect.x + 1 );
-                param->rect.width = max( 0, param->rect.width - 2 );
-                param->rect.y = min( param->img->height, param->rect.y + 1 );
-                param->rect.height = max( 0, param->rect.height - 2 );
-            }
-        }
-        /*
-        if( key == 'e' || key == 'E' ) // Expansion and Shrink so that ratio does not change
-        {
-            if( param->rect.height != 0 && param->rect.width != 0 ) 
-            {
-                int gcd, a = param->rect.width, b = param->rect.height;
-                while( 1 )
-                {
-                    a = a % b;
-                    if( a == 0 ) { gcd = b; break; }
-                    b = b % a;
-                    if( b == 0 ) { gcd = a; break; }
-                }
-                int ratio_width = param->rect.width / gcd;
-                int ratio_height = param->rect.height / gcd;
-                if( key == 'e' ) gcd += 1;
-                else if( key == 'E' ) gcd -= 1;
-                if( gcd > 0 )
-                {
-                    cout << ratio_width << ":" << ratio_height << " * " << gcd << endl;
-                    param->rect.width = ratio_width * gcd;
-                    param->rect.height = ratio_height * gcd; 
-                    cvShowImageAndRectangle( param->w_name, param->img, 
-                    cvRect32fFromRect( param->rect, param->rotate ), 
-                    cvPointTo32f( param->shear ) );
-                }
-            }
-        }*/
 
-        if( param->img )
+        if( param->circle.width > 0 ) // watershed
         {
-            if( param->circle.width > 0 ) // wathershed
+            // Rectangle Movement (Vi like hotkeys)
+            if( key == 'h' ) // Left
+            {
+                param->circle.x -= 1;
+            }
+            else if( key == 'j' ) // Down
+            {
+                param->circle.y += 1;
+            }
+            else if( key == 'k' ) // Up
+            {
+                param->circle.y -= 1;
+            }
+            else if( key == 'l' ) // Right
+            {
+                param->circle.x += 1;
+            }
+            // Rectangle Resize
+            else if( key == 'y' ) // Shrink width
+            {
+                param->circle.width -= 1;
+            }
+            else if( key == 'u' ) // Expand height
+            {
+                param->circle.width += 1;
+            }
+            else if( key == 'i' ) // Shrink height
+            {
+                param->circle.width -= 1;
+            }
+            else if( key == 'o' ) // Expand width
+            {
+                param->circle.width += 1;
+            }
+            // Shear Deformation
+            else if( key == 'n' ) // Left
+            {
+                param->shear.x -= 1;
+            }
+            else if( key == 'm' ) // Down
+            {
+                param->shear.y += 1;
+            }
+            else if( key == ',' ) // Up
+            {
+                param->shear.y -= 1;
+            }
+            else if( key == '.' ) // Right
+            {
+                param->shear.x += 1;
+            }
+            // Rotation
+            else if( key == 'R' ) // Counter-Clockwise
+            {
+                param->rotate += 1;
+                param->rotate = (param->rotate >= 360) ? param->rotate - 360 : param->rotate;
+            }
+            else if( key == 'r' ) // Clockwise
+            {
+                param->rotate -= 1;
+                param->rotate = (param->rotate < 0) ? 360 + param->rotate : param->rotate;
+            }
+            else if( key == 'e' ) // Expand
+            {
+                param->circle.width += 1;
+            }
+            else if( key == 'E' ) // Shrink
+            {
+                param->circle.width -= 1;
+            }
+
+            if( param->img )
             {
                 param->rect = ic::cvShowImageAndWatershed( param->w_name, param->img, param->circle );
                 cvShowCroppedImage( param->miniw_name, param->img, 
                                     cvRect32fFromRect( param->rect, param->rotate ), 
                                     cvPointTo32f( param->shear ) );
             }
-            else
+        }
+        else
+        {
+            // Rectangle Movement (Vi like hotkeys)
+            if( key == 'h' ) // Left
+            {
+                param->rect.x -= 1;
+            }
+            else if( key == 'j' ) // Down
+            {
+                param->rect.y += 1;
+            }
+            else if( key == 'k' ) // Up
+            {
+                param->rect.y -= 1;
+            }
+            else if( key == 'l' ) // Right
+            {
+                param->rect.x += 1;
+            }
+            // Rectangle Resize
+            else if( key == 'y' ) // Shrink width
+            {
+                param->rect.width = max( 0, param->rect.width - 1 );
+            }
+            else if( key == 'u' ) // Expand height
+            {
+                param->rect.height += 1;
+            }
+            else if( key == 'i' ) // Shrink height
+            {
+                param->rect.height = max( 0, param->rect.height - 1 );
+            }
+            else if( key == 'o' ) // Expand width
+            {
+                param->rect.width += 1;
+            }
+            // Shear Deformation
+            else if( key == 'n' ) // Left
+            {
+                param->shear.x -= 1;
+            }
+            else if( key == 'm' ) // Down
+            {
+                param->shear.y += 1;
+            }
+            else if( key == ',' ) // Up
+            {
+                param->shear.y -= 1;
+            }
+            else if( key == '.' ) // Right
+            {
+                param->shear.x += 1;
+            }
+            // Rotation
+            else if( key == 'R' ) // Counter-Clockwise
+            {
+                param->rotate += 1;
+                param->rotate = (param->rotate >= 360) ? param->rotate - 360 : param->rotate;
+            }
+            else if( key == 'r' ) // Clockwise
+            {
+                param->rotate -= 1;
+                param->rotate = (param->rotate < 0) ? 360 + param->rotate : param->rotate;
+            }
+            else if( key == 'e' ) // Expand
+            {
+                param->rect.x = max( 0, param->rect.x - 1 );
+                param->rect.width += 2;
+                param->rect.y = max( 0, param->rect.y - 1 );
+                param->rect.height += 2;
+            }
+            else if( key == 'E' ) // Shrink
+            {
+                param->rect.x = min( param->img->width, param->rect.x + 1 );
+                param->rect.width = max( 0, param->rect.width - 2 );
+                param->rect.y = min( param->img->height, param->rect.y + 1 );
+                param->rect.height = max( 0, param->rect.height - 2 );
+            }
+            /*
+              if( key == 'e' || key == 'E' ) // Expansion and Shrink so that ratio does not change
+              {
+              if( param->rect.height != 0 && param->rect.width != 0 ) 
+              {
+              int gcd, a = param->rect.width, b = param->rect.height;
+              while( 1 )
+              {
+              a = a % b;
+              if( a == 0 ) { gcd = b; break; }
+              b = b % a;
+              if( b == 0 ) { gcd = a; break; }
+              }
+              int ratio_width = param->rect.width / gcd;
+              int ratio_height = param->rect.height / gcd;
+              if( key == 'e' ) gcd += 1;
+              else if( key == 'E' ) gcd -= 1;
+              if( gcd > 0 )
+              {
+              cout << ratio_width << ":" << ratio_height << " * " << gcd << endl;
+              param->rect.width = ratio_width * gcd;
+              param->rect.height = ratio_height * gcd; 
+              cvShowImageAndRectangle( param->w_name, param->img, 
+              cvRect32fFromRect( param->rect, param->rotate ), 
+              cvPointTo32f( param->shear ) );
+              }
+              }
+              }*/
+
+            if( param->img )
             {
                 cvShowImageAndRectangle( param->w_name, param->img, 
                                          cvRect32fFromRect( param->rect, param->rotate ), 
