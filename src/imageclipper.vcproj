@@ -185,15 +185,11 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\convert_format.h"
+				RelativePath=".\filesystem.h"
 				>
 			</File>
 			<File
-				RelativePath=".\cvxrectangle.h"
-				>
-			</File>
-			<File
-				RelativePath=".\get_filelist.h"
+				RelativePath=".\icsprintf.h"
 				>
 			</File>
 		</Filter>
