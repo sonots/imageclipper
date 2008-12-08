@@ -1,4 +1,4 @@
-﻿/**
+/**
 * The MIT License
 * 
 * Copyright (c) 2008, Naotoshi Seo <sonots(at)umd.edu>
@@ -161,7 +161,7 @@ int main( int argc, char *argv[] )
                 usage( argv[0], arg );
                 exit(1);
             }
-            filelist = fs::filelist( arg->reference, param->imtypes, "file" );
+            filelist = fs::filelist( fs::dirname( arg->reference ), param->imtypes, "file" );
             // step up till specified file
             for( fileiter = filelist.begin(); fileiter != filelist.end(); fileiter++ )
             {
