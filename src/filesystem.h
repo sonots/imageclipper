@@ -84,11 +84,21 @@ namespace fs {
         return string( boost::filesystem::extension( fspath ), 1 );
     }
 
+    inline string strtolower( const std::string& str )
+    {
+        std::string ret = str;
+        for( std::string::size_type i = 0; i < ret.size(); i++ )
+        {
+            ret[i] = tolower(ret[i]);
+        }
+        return ret;
+    }
+
     bool match_extensions( const string& filename, const vector<string>& extensions )
     {
-        std::string extension = boost::filesystem::extension( filename );
+        std::string extension = strtolower( extension( filename ) );
         for( std::size_t i = 0; i < extensions.size() - 1; i++ ) {
-            if( extension == "." + extensions[i] ) return true;
+            if( extension == extensions[i] ) return true;
         }
         return false;
     }
