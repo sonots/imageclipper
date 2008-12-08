@@ -185,15 +185,15 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\cvdrawwatershed.h"
+				>
+			</File>
+			<File
 				RelativePath=".\filesystem.h"
 				>
 			</File>
 			<File
-				RelativePath=".\iccvdrawwatershed.h"
-				>
-			</File>
-			<File
-				RelativePath=".\icsprintf.h"
+				RelativePath=".\icformat.h"
 				>
 			</File>
 		</Filter>
