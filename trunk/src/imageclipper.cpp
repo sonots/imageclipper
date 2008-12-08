@@ -1,0 +1,835 @@
+﻿/**
+* The MIT License
+* 
+* Copyright (c) 2008, Naotoshi Seo <sonots(at)umd.edu>
+* 
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+* 
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+* THE SOFTWARE.
+*/
+#ifdef _MSC_VER // MS Visual Studio
+#pragma warning(disable:4996)
+#pragma warning(disable:4244) // possible loss of data
+#pragma warning(disable:4819) // Save the file in Unicode format to prevent data loss
+#pragma comment(lib, "cv.lib")
+#pragma comment(lib, "cvaux.lib")
+#pragma comment(lib, "cxcore.lib")
+#pragma comment(lib, "highgui.lib")
+#endif
+
+#include "cv.h"
+#include "cvaux.h"
+#include "cxcore.h"
+#include "highgui.h"
+#include <stdio.h>
+#include <math.h>
+#include <iostream>
+#include <string>
+#include <vector>
+#include "filesystem.h"
+#include "icsprintf.h"
+#include "opencvx/cvrect32f.h"
+#include "opencvx/cvdrawrectangle.h"
+#include "opencvx/cvcropimageroi.h"
+#include "opencvx/cvpointnorm.h"
+using namespace std;
+
+/************************************ Global *************************************/
+
+/**
+* A Callback function structure
+*/
+typedef struct CvCallbackParam {
+    const char* w_name;
+    const char* miniw_name;
+    IplImage* img;
+    CvRect rect;
+    CvRect circle; // use x, y for center, width as radius. width == 0 means watershed is off
+    int rotate;
+    CvPoint shear;
+} CvCallbackParam ;
+
+CvCallbackParam init_param = {
+    "<S> Save <F> Forward <SPACE> s and f <B> Backward <ESC> Exit",
+    "Cropped",
+    NULL,
+    cvRect(0,0,0,0),
+    cvRect(0,0,0,0),
+    0,
+    cvPoint(0,0)
+};
+CvCallbackParam* param = &init_param;
+/*
+const char* param_w_name = "<S> Save <F> Forward <SPACE> s and f <B> Backward <ESC> Exit";
+const char* param_miniw_name = "Cropped";
+IplImage*   param_img    = NULL;
+CvRect      param_rect   = cvRect(0,0,0,0);
+CvRect      param_circle = cvRect(0,0,0,0); // use x, y for center, width as radius. width == 0 means watershed is off
+int         param_rotate = 0;
+CvPoint     param_shear  = cvPoint(0,0);
+*/
+
+string      arg_reference     = ".";
+const char* arg_imgout_format = "%d/imageclipper/%i.%e_%04r_%04x_%04y_%04w_%04h.png";
+const char* arg_vidout_format = "%d/imageclipper/%i.%e_%04f_%04r_%04x_%04y_%04w_%04h.png";
+const char* arg_output_format = NULL;
+int         arg_frame         = 1;
+
+vector<string> conf_imtypes;
+
+/************************* Function Prototypes *********************************/
+inline CvRect cvShowImageAndWatershed( const char* w_name, const IplImage* img, const CvRect &circle );
+void arg_parse( int argc, char** argv );
+void usage( const char* name );
+void gui_usage();
+void mouse_callback( int event, int x, int y, int flags, void* arg );
+void key_callback( CvCapture* cap, vector<string>::iterator fileiter, vector<string>& filelist );
+
+/************************* Main ************************************************/
+
+int main( int argc, char *argv[] )
+{
+    //// Initialization
+
+    conf_imtypes.push_back( "bmp" );
+    conf_imtypes.push_back( "dib" );
+    conf_imtypes.push_back( "jpeg" );
+    conf_imtypes.push_back( "jpg" );
+    conf_imtypes.push_back( "jpe" );
+    conf_imtypes.push_back( "png" );
+    conf_imtypes.push_back( "pbm" );
+    conf_imtypes.push_back( "pbm" );
+    conf_imtypes.push_back( "ppm" );
+    conf_imtypes.push_back( "sr" );
+    conf_imtypes.push_back( "ras" );
+    conf_imtypes.push_back( "tiff" );
+    conf_imtypes.push_back( "exr" );
+    conf_imtypes.push_back( "jp2" );
+
+    arg_parse( argc, argv );
+    gui_usage();
+
+    //// Initial argument check
+    bool is_directory = fs::is_directory( arg_reference );
+    bool is_image = fs::match_extensions( arg_reference, conf_imtypes );
+    bool is_video = !is_directory & !is_image;
+    if( arg_output_format == NULL )
+    {
+        arg_output_format = is_video ? arg_vidout_format : arg_imgout_format;
+    }
+
+    // Read filelist or vide
+    vector<string> filelist; // for image
+    vector<string>::iterator fileiter; // for image
+    CvCapture* cap = NULL; // for video
+    if( is_directory || is_image )
+    {
+        cerr << "Now reading a directory..... ";
+        if( is_directory )
+        {
+            filelist = fs::filelist( arg_reference, conf_imtypes, "file" );
+            if( filelist.empty() )
+            {
+                cerr << "No image file exist under a directory " << fs::realpath( arg_reference ) << endl << endl;
+                usage( argv[0] );
+                exit(1);
+            }
+            fileiter = filelist.begin();
+        }
+        else
+        {
+            if( !fs::exists( arg_reference ) )
+            {
+                cerr << "The image file " << fs::realpath( arg_reference ) << " does not exist." << endl << endl;
+                usage( argv[0] );
+                exit(1);
+            }
+            filelist = fs::filelist( arg_reference, conf_imtypes, "file" );
+            // step up till specified file
+            for( fileiter = filelist.begin(); fileiter != filelist.end(); fileiter++ )
+            {
+                if( fs::realpath( *fileiter ) == fs::realpath( arg_reference ) ) break;
+            }
+        }
+        cerr << "Done!" << endl;
+        cerr << "Now showing " << fs::realpath( *fileiter ) << endl;
+        param->img = cvLoadImage( fs::realpath( *fileiter ).c_str() );
+    }
+    else if( is_video )
+    {
+        if ( !fs::exists( arg_reference ) )
+        {
+            cerr << "The file " << fs::realpath( arg_reference ) << " does not exist or is not readable." << endl << endl;
+            usage( argv[0] );
+            exit(1);
+        }
+        cerr << "Now reading a video..... ";
+        cap = cvCaptureFromFile( fs::realpath( arg_reference ).c_str() );
+        cvSetCaptureProperty( cap, CV_CAP_PROP_POS_FRAMES, arg_frame - 1 );
+        param->img = cvQueryFrame( cap );
+        if( param->img == NULL )
+        {
+            cerr << "The file " << fs::realpath( arg_reference ) << " was assumed as a video, but not loadable." << endl << endl;
+            usage( argv[0] );
+            exit(1);
+        }
+        cerr << "Done!" << endl;
+        cerr << cvGetCaptureProperty( cap, CV_CAP_PROP_FRAME_COUNT ) << " frames totally." << endl;
+        cerr << "Now showing " << fs::realpath( arg_reference ) << " " << arg_frame << endl;
+#if defined(WIN32) || defined(WIN64)
+        param->img->origin = 0;
+        cvFlip( param->img );
+#endif
+    }
+    else
+    {
+        cerr << "The directory " << fs::realpath( arg_reference ) << " does not exist." << endl << endl;
+        usage( argv[0] );
+        exit(1);
+    }
+
+    //// Mouse and Key callback
+    cvNamedWindow( param->w_name, CV_WINDOW_AUTOSIZE );
+    cvNamedWindow( param->miniw_name, CV_WINDOW_AUTOSIZE );
+    cvShowImageAndRectangle( param->w_name, param->img, 
+                             cvRect32fFromRect( param->rect, param->rotate ), 
+                             cvPointTo32f( param->shear ) );
+    cvShowCroppedImage( param->miniw_name, param->img, 
+                        cvRect32fFromRect( param->rect, param->rotate ), 
+                        cvPointTo32f( param->shear ) );
+    //cvSetMouseCallback( param->w_name, mouse_callback, param );
+    cvSetMouseCallback( param->w_name, mouse_callback );
+    key_callback( cap, fileiter, filelist );
+    cvDestroyWindow( param->w_name );
+    cvDestroyWindow( param->miniw_name );
+}
+
+void key_callback( CvCapture* cap, vector<string>::iterator fileiter, vector<string>& filelist )
+{
+    string filename = cap != NULL ? arg_reference : *fileiter;
+
+    while( true ) // key callback
+    {
+        int key = cvWaitKey( 0 );
+
+        // 32 is SPACE
+        if( key == 's' || key == 32 ) // Save
+        {
+            if( param->rect.width > 0 && param->rect.height > 0 )
+            {
+                string output_path = ic::sprintf( 
+                    arg_output_format, fs::dirname( filename ), 
+                    fs::filename( filename ), fs::extension( filename ),
+                    param->rect.x, param->rect.y, param->rect.width, param->rect.height, 
+                    arg_frame, param->rotate );
+
+                if( !fs::match_extensions( output_path, conf_imtypes ) )
+                {
+                    cerr << "The image type " << fs::extension( output_path ) << " is not supported." << endl;
+                    exit(1);
+                }
+                fs::create_directories( fs::dirname( output_path ) );
+
+                IplImage* crop = cvCreateImage( 
+                    cvSize( param->rect.width, param->rect.height ), 
+                    param->img->depth, param->img->nChannels );
+                cvCropImageROI( param->img, crop, 
+                                cvRect32fFromRect( param->rect, param->rotate ), 
+                                cvPointTo32f( param->shear ) );
+                cvSaveImage( fs::realpath( output_path ).c_str(), crop );
+                cout << fs::realpath( output_path ) << endl;
+                cvReleaseImage( &crop );
+            }
+        }
+        // Forward
+        if( key == 'f' || key == 32 ) // 32 is SPACE
+        {
+            if( cap )
+            {
+                IplImage* tmpimg = cvQueryFrame( cap );
+                if( tmpimg != NULL )
+                //if( frame < cvGetCaptureProperty( cap, CV_CAP_PROP_FRAME_COUNT ) )
+                {
+                    param->img = tmpimg; 
+#if defined(WIN32) || defined(WIN64)
+                    param->img->origin = 0;
+                    cvFlip( param->img );
+#endif
+                    arg_frame++;
+                    cout << "Now showing " << fs::realpath( filename ) << " " <<  arg_frame << endl;
+                }
+            }
+            else
+            {
+                if( fileiter + 1 != filelist.end() )
+                {
+                    cvReleaseImage( &param->img );
+                    fileiter++;
+                    filename = *fileiter;
+                    param->img = cvLoadImage( fs::realpath( filename ).c_str() );
+                    cout << "Now showing " << fs::realpath( filename ) << endl;
+                }
+            }
+        }
+        // Backward
+        else if( key == 'b' )
+        {
+            if( cap )
+            {
+                IplImage* tmpimg;
+                arg_frame = max( 1, arg_frame - 1 );
+                cvSetCaptureProperty( cap, CV_CAP_PROP_POS_FRAMES, arg_frame - 1 );
+                if( tmpimg = cvQueryFrame( cap ) )
+                {
+                    param->img = tmpimg;
+#if defined(WIN32) || defined(WIN64)
+                    param->img->origin = 0;
+                    cvFlip( param->img );
+#endif
+                    cout << "Now showing " << fs::realpath( filename ) << " " <<  arg_frame << endl;
+                }
+            }
+            else
+            {
+                if( fileiter != filelist.begin() ) 
+                {
+                    cvReleaseImage( &param->img );
+                    fileiter--;
+                    filename = *fileiter;
+                    param->img = cvLoadImage( fs::realpath( filename ).c_str() );
+                    cout << "Now showing " << fs::realpath( filename ) << endl;
+                }
+            }
+        }
+        // Exit
+        else if( key == 'q' || key == 27 ) // 27 is ESC
+        {
+            break;
+        }
+        // Rectangle Movement (Vi like hotkeys)
+        else if( key == 'h' ) // Left
+        {
+            if( param->circle.width > 0 ) // wathershed
+                param->circle.x -= 1;
+            else
+                param->rect.x -= 1;
+        }
+        else if( key == 'j' ) // Down
+        {
+            if( param->circle.width > 0 ) // wathershed
+                param->circle.y += 1;
+            else
+                param->rect.y += 1;
+        }
+        else if( key == 'k' ) // Up
+        {
+            if( param->circle.width > 0 ) // wathershed
+                param->circle.y -= 1;
+            else
+                param->rect.y -= 1;
+        }
+        else if( key == 'l' ) // Right
+        {
+            if( param->circle.width > 0 ) // wathershed
+                param->circle.x += 1;
+            else
+                param->rect.x += 1;
+        }
+        // Rectangle Resize
+        else if( key == 'y' ) // Shrink width
+        {
+            if( param->circle.width > 0 ) // wathershed
+                param->circle.width -= 1;
+            else
+                param->rect.width = max( 0, param->rect.width - 1 );
+        }
+        else if( key == 'u' ) // Expand height
+        {
+            if( param->circle.width > 0 ) // wathershed
+                param->circle.width += 1;
+            else
+                param->rect.height += 1;
+        }
+        else if( key == 'i' ) // Shrink height
+        {
+            if( param->circle.width > 0 ) // wathershed
+                param->circle.width -= 1;
+            else
+                param->rect.height = max( 0, param->rect.height - 1 );
+        }
+        else if( key == 'o' ) // Expand width
+        {
+            if( param->circle.width > 0 ) // wathershed
+                param->circle.width += 1;
+            else
+                param->rect.width += 1;
+        }
+        // Shear Deformation
+        else if( key == 'n' ) // Left
+        {
+            param->shear.x -= 1;
+        }
+        else if( key == 'm' ) // Down
+        {
+            param->shear.y += 1;
+        }
+        else if( key == ',' ) // Up
+        {
+            param->shear.y -= 1;
+        }
+        else if( key == '.' ) // Right
+        {
+            param->shear.x += 1;
+        }
+        // Rotation
+        else if( key == 'R' ) // Counter-Clockwise
+        {
+            param->rotate += 1;
+            param->rotate = (param->rotate >= 360) ? param->rotate - 360 : param->rotate;
+        }
+        else if( key == 'r' ) // Clockwise
+        {
+            param->rotate -= 1;
+            param->rotate = (param->rotate < 0) ? 360 + param->rotate : param->rotate;
+        }
+        else if( key == 'e' ) // Expand
+        {
+            if( param->circle.width > 0 ) // watershed
+                param->circle.width += 1;
+            else
+            {
+                param->rect.x = max( 0, param->rect.x - 1 );
+                param->rect.width += 2;
+                param->rect.y = max( 0, param->rect.y - 1 );
+                param->rect.height += 2;
+            }
+        }
+        else if( key == 'E' ) // Shrink
+        {
+            if( param->circle.width > 0 ) // wathershed
+                param->circle.width -= 1;
+            else
+            {
+                param->rect.x = min( param->img->width, param->rect.x + 1 );
+                param->rect.width = max( 0, param->rect.width - 2 );
+                param->rect.y = min( param->img->height, param->rect.y + 1 );
+                param->rect.height = max( 0, param->rect.height - 2 );
+            }
+        }
+        /*
+        if( key == 'e' || key == 'E' ) // Expansion and Shrink so that ratio does not change
+        {
+            if( param->rect.height != 0 && param->rect.width != 0 ) 
+            {
+                int gcd, a = param->rect.width, b = param->rect.height;
+                while( 1 )
+                {
+                    a = a % b;
+                    if( a == 0 ) { gcd = b; break; }
+                    b = b % a;
+                    if( b == 0 ) { gcd = a; break; }
+                }
+                int ratio_width = param->rect.width / gcd;
+                int ratio_height = param->rect.height / gcd;
+                if( key == 'e' ) gcd += 1;
+                else if( key == 'E' ) gcd -= 1;
+                if( gcd > 0 )
+                {
+                    cout << ratio_width << ":" << ratio_height << " * " << gcd << endl;
+                    param->rect.width = ratio_width * gcd;
+                    param->rect.height = ratio_height * gcd; 
+                    cvShowImageAndRectangle( param->w_name, param->img, 
+                    cvRect32fFromRect( param->rect, param->rotate ), 
+                    cvPointTo32f( param->shear ) );
+                }
+            }
+        }*/
+
+        if( param->img )
+        {
+            if( param->circle.width > 0 ) // wathershed
+            {
+                param->rect = cvShowImageAndWatershed( param->w_name, param->img, param->circle );
+                cvShowCroppedImage( param->miniw_name, param->img, 
+                                    cvRect32fFromRect( param->rect, param->rotate ), 
+                                    cvPointTo32f( param->shear ) );
+            }
+            else
+            {
+                cvShowImageAndRectangle( param->w_name, param->img, 
+                                         cvRect32fFromRect( param->rect, param->rotate ), 
+                                         cvPointTo32f( param->shear ) );
+                cvShowCroppedImage( param->miniw_name, param->img, 
+                                    cvRect32fFromRect( param->rect, param->rotate ), 
+                                    cvPointTo32f( param->shear ) );
+            }
+        }
+    }
+}
+
+
+inline CvRect cvShowImageAndWatershed( const char* w_name, const IplImage* img, const CvRect &circle )
+{
+    IplImage* clone = cvCloneImage( img );
+    IplImage* markers  = cvCreateImage( cvGetSize( clone ), IPL_DEPTH_32S, 1 );
+    CvPoint center = cvPoint( circle.x, circle.y );
+    int radius = circle.width;
+
+    // Set watershed markers. Now, marker's shape is like circle
+    // Set (1 * radius) - (3 * radius) region as ambiguous region (0), intuitively
+    cvSet( markers, cvScalarAll( 1 ) );
+    cvCircle( markers, center, 3 * radius, cvScalarAll( 0 ), CV_FILLED, 8, 0 );
+    cvCircle( markers, center, radius, cvScalarAll( 2 ), CV_FILLED, 8, 0 );
+    cvWatershed( clone, markers );
+
+    // Draw watershed markers and rectangle surrounding watershed markers
+    cvCircle( clone, center, radius, cvScalarAll (255), 2, 8, 0);
+
+    CvPoint minpoint = cvPoint( markers->width, markers->height );
+    CvPoint maxpoint = cvPoint( 0, 0 );
+    for (int y = 1; y < markers->height-1; y++) { // looks outer boundary is always -1. 
+        for (int x = 1; x < markers->width-1; x++) {
+            int* idx = (int *) cvPtr2D (markers, y, x, NULL);
+            if (*idx == -1) { // watershed marker -1
+                cvSet2D (clone, y, x, cvScalarAll (255));
+                if( x < minpoint.x ) minpoint.x = x;
+                if( y < minpoint.y ) minpoint.y = y;
+                if( x > maxpoint.x ) maxpoint.x = x;
+                if( y > maxpoint.y ) maxpoint.y = y;
+            }
+        }
+    }
+    cvRectangle( clone, minpoint, maxpoint, CV_RGB(255, 255, 0), 1 );
+
+    cvShowImage( w_name, clone );
+    cvReleaseImage( &clone );
+
+    return cvRect( minpoint.x, minpoint.y, maxpoint.x - minpoint.x, maxpoint.y - minpoint.y );
+}
+
+/**
+* cvSetMouseCallback function
+*/
+void mouse_callback( int event, int x, int y, int flags, void* arg )
+{
+    //CvCallbackParam* param = (CvCallbackParam*)arg;
+    static CvPoint point0          = cvPoint( 0, 0 );
+    static bool move_rect          = false;
+    static bool resize_rect_left   = false;
+    static bool resize_rect_right  = false;
+    static bool resize_rect_top    = false;
+    static bool resize_rect_bottom = false;
+    static bool move_watershed     = false;
+    static bool resize_watershed   = false;
+
+    if( !param->img )
+        return;
+
+    if( x >= 32768 ) x -= 65536; // change left outsite to negative
+    if( y >= 32768 ) y -= 65536; // change top outside to negative
+
+    // MBUTTON or LBUTTON + SHIFT is to draw wathershed
+    if( event == CV_EVENT_MBUTTONDOWN || 
+        ( event == CV_EVENT_LBUTTONDOWN && flags & CV_EVENT_FLAG_SHIFTKEY ) ) // initialization
+    {
+        param->circle.x = x;
+        param->circle.y = y;
+    }
+    else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_MBUTTON ||
+        ( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_LBUTTON && flags & CV_EVENT_FLAG_SHIFTKEY ) )
+    {
+        param->rotate  = 0;
+        param->shear.x = param->shear.y = 0;
+
+        param->circle.width = (int) cvPointNorm( cvPoint( param->circle.x, param->circle.y ), cvPoint( x, y ) );
+        param->rect = cvShowImageAndWatershed( param->w_name, param->img, param->circle );
+        cvShowCroppedImage( param->miniw_name, param->img, 
+                            cvRect32fFromRect( param->rect, param->rotate ), 
+                            cvPointTo32f( param->shear ) );
+    }
+
+    // LBUTTON is to draw rectangle
+    else if( event == CV_EVENT_LBUTTONDOWN ) // initialization
+    {
+        point0 = cvPoint( x, y );
+    }
+    else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_LBUTTON )
+    {
+        param->circle.width = 0; // disable watershed
+        param->rotate       = 0;
+        param->shear.x      = param->shear.y = 0;
+
+        param->rect.x = min( point0.x, x );
+        param->rect.y = min( point0.y, y );
+        param->rect.width =  abs( point0.x - x );
+        param->rect.height = abs( point0.y - y );
+
+        cvShowImageAndRectangle( param->w_name, param->img, 
+                                 cvRect32fFromRect( param->rect, param->rotate ), 
+                                 cvPointTo32f( param->shear ) );
+        cvShowCroppedImage( param->miniw_name, param->img, 
+                            cvRect32fFromRect( param->rect, param->rotate ), 
+                            cvPointTo32f( param->shear ) );
+    }
+
+    // RBUTTON to move rentangle or watershed marker
+    else if( event == CV_EVENT_RBUTTONDOWN )
+    {
+        point0 = cvPoint( x, y );
+
+        if( param->circle.width != 0 )
+        {
+            CvPoint center = cvPoint( param->circle.x, param->circle.y );
+            int radius = (int) cvPointNorm( center, point0 );
+            if( param->circle.width - 1 <= radius && radius <= param->circle.width )
+            {
+                resize_watershed = true;
+            }
+            else if( radius <= param->circle.width )
+            {
+                move_watershed = true;
+            }
+        }
+        if( !resize_watershed && !move_watershed )
+        {
+            param->circle.width = 0;
+            if( ( param->rect.x < x && x < param->rect.x + param->rect.width ) && 
+                ( param->rect.y < y && y < param->rect.y + param->rect.height ) )
+            {
+                move_rect = true;
+            }
+            if( x <= param->rect.x )
+            {
+                resize_rect_left = true; 
+            }
+            else if( x >= param->rect.x + param->rect.width )
+            {
+                resize_rect_right = true;
+            }
+            if( y <= param->rect.y )
+            {
+                resize_rect_top = true; 
+            }
+            else if( y >= param->rect.y + param->rect.height )
+            {
+                resize_rect_bottom = true;
+            }
+        }
+    }
+    else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_RBUTTON && param->circle.width != 0 ) // Move or resize for watershed
+    {
+        if( move_watershed )
+        {
+            CvPoint move = cvPoint( x - point0.x, y - point0.y );
+            param->circle.x += move.x;
+            param->circle.y += move.y;
+
+            param->rect = cvShowImageAndWatershed( param->w_name, param->img, param->circle );
+            cvShowCroppedImage( param->miniw_name, param->img, 
+                                cvRect32fFromRect( param->rect, param->rotate ),
+                                cvPointTo32f( param->shear ) );
+
+            point0 = cvPoint( x, y );
+        }
+        else if( resize_watershed )
+        {
+            param->circle.width = (int) cvPointNorm( cvPoint( param->circle.x, param->circle.y ), cvPoint( x, y ) );
+            param->rect = cvShowImageAndWatershed( param->w_name, param->img, param->circle );
+            cvShowCroppedImage( param->miniw_name, param->img, 
+                                cvRect32fFromRect( param->rect, param->rotate ), 
+                                cvPointTo32f( param->shear ) );
+        }
+    }
+    else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_RBUTTON ) // Move or resize for rectangle
+    {
+        if( move_rect )
+        {
+            CvPoint move = cvPoint( x - point0.x, y - point0.y );
+            param->rect.x += move.x;
+            param->rect.y += move.y;
+        }
+        if( resize_rect_left )
+        {
+            int move_x = x - point0.x;
+            param->rect.x += move_x;
+            param->rect.width -= move_x;
+        }
+        else if( resize_rect_right )
+        {
+            int move_x = x - point0.x;
+            param->rect.width += move_x;
+        }
+        if( resize_rect_top )
+        {
+            int move_y = y - point0.y;
+            param->rect.y += move_y;
+            param->rect.height -= move_y;
+        }
+        else if( resize_rect_bottom )
+        {
+            int move_y = y - point0.y;
+            param->rect.height += move_y;
+        }
+
+        // assure width is positive
+        if( param->rect.width <= 0 )
+        {
+            param->rect.x += param->rect.width;
+            param->rect.width *= -1;
+            bool tmp = resize_rect_right;
+            resize_rect_right = resize_rect_left;
+            resize_rect_left  = tmp;
+        }
+        // assure height is positive
+        if( param->rect.height <= 0 )
+        {
+            param->rect.y += param->rect.height;
+            param->rect.height *= -1;
+            bool tmp = resize_rect_top;
+            resize_rect_top    = resize_rect_bottom;
+            resize_rect_bottom = tmp;
+        }
+
+        cvShowImageAndRectangle( param->w_name, param->img, 
+                                 cvRect32fFromRect( param->rect, param->rotate ), 
+                                 cvPointTo32f( param->shear ) );
+        cvShowCroppedImage( param->miniw_name, param->img, 
+                            cvRect32fFromRect( param->rect, param->rotate ), 
+                            cvPointTo32f( param->shear ) );
+        point0 = cvPoint( x, y );
+    }
+
+    // common finalization
+    else if( event == CV_EVENT_LBUTTONUP || event == CV_EVENT_MBUTTONUP || event == CV_EVENT_RBUTTONUP )
+    {
+        move_rect          = false;
+        resize_rect_left   = false;
+        resize_rect_right  = false;
+        resize_rect_top    = false;
+        resize_rect_bottom = false;
+        move_watershed     = false;
+        resize_watershed   = false;
+    }
+}
+
+/**
+ * Arguments Processing
+ */
+void arg_parse( int argc, char** argv )
+{
+    for( int i = 1; i < argc; i++ )
+    {
+        if( !strcmp( argv[i], "-h" ) || !strcmp( argv[i], "--help" ) )
+        {
+            usage( argv[0] );
+            return;
+        } 
+        else if( !strcmp( argv[i], "-o" ) || !strcmp( argv[i], "--output_format" ) )
+        {
+            arg_output_format = argv[++i];
+        }
+        else if( !strcmp( argv[i], "-i" ) || !strcmp( argv[i], "--imgout_format" ) )
+        {
+            arg_imgout_format = argv[++i];
+        }
+        else if( !strcmp( argv[i], "-v" ) || !strcmp( argv[i], "--vidout_format" ) )
+        {
+            arg_vidout_format = argv[++i];
+        }
+        else if( !strcmp( argv[i], "-f" ) || !strcmp( argv[i], "--frame" ) )
+        {
+            arg_frame = atoi( argv[++i] );
+        }
+        else
+        {
+            arg_reference = string( argv[i] );
+        }
+    }
+}
+
+/**
+* Print out usage
+*/
+void usage( const char* name )
+{
+    cout << "ImageClipper - image clipping helper tool." << endl;
+    cout << "Command Usage: " << fs::basename( name );
+    cout << " [option]... [arg_reference]" << endl;
+    cout << "  <arg_reference = " << arg_reference << ">" << endl;
+    cout << "    <arg_reference> would be a directory or an image or a video filename." << endl;
+    cout << "    For a directory, image files in the directory will be read sequentially." << endl;
+    cout << "    For an image, it starts to read a directory from the specified image file. " << endl;
+    cout << "    (A file is judged as an image based on its extension filename.)" << endl;
+    cout << "    A file except images is treated as a video and read frame by frame. " << endl;
+    cout << endl;
+    cout << "  Options" << endl;
+    cout << "    -o <output_format = imgout_format or vidout_format>" << endl;
+    cout << "        Determine the output file path format." << endl;
+    cout << "        This is a syntax sugar for -i and -v. " << endl;
+    cout << "        Format Expression)" << endl;
+    cout << "            %d - dirname of the original" << endl;
+    cout << "            %i - filename of the original without extension" << endl;
+    cout << "            %e - filename extension of the original" << endl;
+    cout << "            %x - upper-left x coord" << endl;
+    cout << "            %y - upper-left y coord" << endl;
+    cout << "            %w - width" << endl;
+    cout << "            %h - height" << endl;
+    cout << "            %r - rotation degree" << endl;
+    cout << "            %. - shear deformation in x coord" << endl;
+    cout << "            %, - shear deformation in y coord" << endl;
+    cout << "            %f - frame number (for video)" << endl;
+    cout << "        Example) ./$i_%04x_%04y_%04w_%04h.%e" << endl;
+    cout << "            Store into software directory and use image type of the original." << endl;
+    cout << "    -i <imgout_format = " << arg_imgout_format << ">" << endl;
+    cout << "        Determine the output file path format for image inputs." << endl;
+    cout << "    -v <vidout_format = " << arg_vidout_format << ">" << endl;
+    cout << "        Determine the output file path format for a video input." << endl;
+    cout << "    -f" << endl;
+    cout << "    --frame <frame = 1> (video)" << endl;
+    cout << "        Determine the frame number of video to start to read." << endl;
+    cout << "    -h" << endl;
+    cout << "    --help" << endl;
+    cout << "        Show this help" << endl;
+    cout << endl;
+    cout << "  Supported Image Types" << endl;
+    cout << "      bmp|dib|jpeg|jpg|jpe|png|pbm|pgm|ppm|sr|ras|tiff|exr|jp2" << endl;
+}
+
+/**
+* Print Application Usage
+*/
+void gui_usage()
+{
+    cout << "Application Usage:" << endl;
+    cout << "  Mouse Usage:" << endl;
+    cout << "    Left  (select)          : Select or initialize a rectangle region." << endl;
+    cout << "    Right (move or resize)  : Move by dragging inside the rectangle." << endl;
+    cout << "                              Resize by draggin outside the rectangle." << endl;
+    cout << "    Middle or SHIFT + Left  : Initialize the watershed marker. Drag it. " << endl;
+    cout << "  Keyboard Usage:" << endl;
+    cout << "    s (save)                : Save the selected region as an image." << endl;
+    cout << "    f (forward)             : Forward. Show next image." << endl;
+    cout << "    SPACE                   : Save and Forward." << endl;
+    cout << "    b (backward)            : Backward. " << endl;
+    cout << "    q (quit) or ESC         : Quit. " << endl;
+    cout << "    r (rotate) R (counter)  : Rotate rectangle in clockwise." << endl;
+    cout << "    e (expand) E (shrink)   : Expand the recntagle size." << endl;
+    cout << "    h (left) j (down) k (up) l (right) : Move rectangle." << endl;
+    cout << "    y (left) u (down) i (up) o (right) : Resize rectangle (Move boundaries)." << endl;
+    cout << "    n (left) m (down) , (up) . (right) : Shear deformation." << endl;
+}
+
