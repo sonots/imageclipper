@@ -42,6 +42,7 @@
 #include <vector>
 #include "filesystem.h"
 #include "icsprintf.h"
+#include "iccvdrawwatershed.h"
 #include "opencvx/cvrect32f.h"
 #include "opencvx/cvdrawrectangle.h"
 #include "opencvx/cvcropimageroi.h"
@@ -76,7 +77,6 @@ typedef struct ArgParam {
 } ArgParam;
 
 /************************* Function Prototypes *********************************/
-inline CvRect cvShowImageAndWatershed( const char* w_name, const IplImage* img, const CvRect &circle );
 void arg_parse( int argc, char** argv, ArgParam* arg = NULL );
 void usage( const char* name, ArgParam* arg = NULL );
 void gui_usage();
@@ -465,7 +465,7 @@ void key_callback( CvCapture* cap, vector<string>::iterator fileiter, vector<str
         {
             if( param->circle.width > 0 ) // wathershed
             {
-                param->rect = cvShowImageAndWatershed( param->w_name, param->img, param->circle );
+                param->rect = ic::cvShowImageAndWatershed( param->w_name, param->img, param->circle );
                 cvShowCroppedImage( param->miniw_name, param->img, 
                                     cvRect32fFromRect( param->rect, param->rotate ), 
                                     cvPointTo32f( param->shear ) );
@@ -481,46 +481,6 @@ void key_callback( CvCapture* cap, vector<string>::iterator fileiter, vector<str
             }
         }
     }
-}
-
-
-inline CvRect cvShowImageAndWatershed( const char* w_name, const IplImage* img, const CvRect &circle )
-{
-    IplImage* clone = cvCloneImage( img );
-    IplImage* markers  = cvCreateImage( cvGetSize( clone ), IPL_DEPTH_32S, 1 );
-    CvPoint center = cvPoint( circle.x, circle.y );
-    int radius = circle.width;
-
-    // Set watershed markers. Now, marker's shape is like circle
-    // Set (1 * radius) - (3 * radius) region as ambiguous region (0), intuitively
-    cvSet( markers, cvScalarAll( 1 ) );
-    cvCircle( markers, center, 3 * radius, cvScalarAll( 0 ), CV_FILLED, 8, 0 );
-    cvCircle( markers, center, radius, cvScalarAll( 2 ), CV_FILLED, 8, 0 );
-    cvWatershed( clone, markers );
-
-    // Draw watershed markers and rectangle surrounding watershed markers
-    cvCircle( clone, center, radius, cvScalarAll (255), 2, 8, 0);
-
-    CvPoint minpoint = cvPoint( markers->width, markers->height );
-    CvPoint maxpoint = cvPoint( 0, 0 );
-    for (int y = 1; y < markers->height-1; y++) { // looks outer boundary is always -1. 
-        for (int x = 1; x < markers->width-1; x++) {
-            int* idx = (int *) cvPtr2D (markers, y, x, NULL);
-            if (*idx == -1) { // watershed marker -1
-                cvSet2D (clone, y, x, cvScalarAll (255));
-                if( x < minpoint.x ) minpoint.x = x;
-                if( y < minpoint.y ) minpoint.y = y;
-                if( x > maxpoint.x ) maxpoint.x = x;
-                if( y > maxpoint.y ) maxpoint.y = y;
-            }
-        }
-    }
-    cvRectangle( clone, minpoint, maxpoint, CV_RGB(255, 255, 0), 1 );
-
-    cvShowImage( w_name, clone );
-    cvReleaseImage( &clone );
-
-    return cvRect( minpoint.x, minpoint.y, maxpoint.x - minpoint.x, maxpoint.y - minpoint.y );
 }
 
 /**
@@ -558,7 +518,7 @@ void mouse_callback( int event, int x, int y, int flags, void* arg )
         param->shear.x = param->shear.y = 0;
 
         param->circle.width = (int) cvPointNorm( cvPoint( param->circle.x, param->circle.y ), cvPoint( x, y ) );
-        param->rect = cvShowImageAndWatershed( param->w_name, param->img, param->circle );
+        param->rect = ic::cvShowImageAndWatershed( param->w_name, param->img, param->circle );
         cvShowCroppedImage( param->miniw_name, param->img, 
                             cvRect32fFromRect( param->rect, param->rotate ), 
                             cvPointTo32f( param->shear ) );
@@ -640,7 +600,7 @@ void mouse_callback( int event, int x, int y, int flags, void* arg )
             param->circle.x += move.x;
             param->circle.y += move.y;
 
-            param->rect = cvShowImageAndWatershed( param->w_name, param->img, param->circle );
+            param->rect = ic::cvShowImageAndWatershed( param->w_name, param->img, param->circle );
             cvShowCroppedImage( param->miniw_name, param->img, 
                                 cvRect32fFromRect( param->rect, param->rotate ),
                                 cvPointTo32f( param->shear ) );
@@ -650,7 +610,7 @@ void mouse_callback( int event, int x, int y, int flags, void* arg )
         else if( resize_watershed )
         {
             param->circle.width = (int) cvPointNorm( cvPoint( param->circle.x, param->circle.y ), cvPoint( x, y ) );
-            param->rect = cvShowImageAndWatershed( param->w_name, param->img, param->circle );
+            param->rect = ic::cvShowImageAndWatershed( param->w_name, param->img, param->circle );
             cvShowCroppedImage( param->miniw_name, param->img, 
                                 cvRect32fFromRect( param->rect, param->rotate ), 
                                 cvPointTo32f( param->shear ) );

@@ -189,6 +189,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\iccvdrawwatershed.h"
+				>
+			</File>
+			<File
 				RelativePath=".\icsprintf.h"
 				>
 			</File>
