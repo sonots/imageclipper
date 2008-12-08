@@ -78,6 +78,7 @@ namespace fs {
         return boost::filesystem::basename( fspath );
     }
 
+    // @todo: string( ext, 1 ) errors when ext does not exist. 
     inline string extension( const string& path )
     {
         boost::filesystem::path fspath( path );
@@ -96,9 +97,10 @@ namespace fs {
 
     bool match_extensions( const string& filename, const vector<string>& extensions )
     {
-        std::string extension = strtolower( extension( filename ) );
+        std::string extension = boost::filesystem::extension( filename );
+        extension = fs::strtolower( extension );
         for( std::size_t i = 0; i < extensions.size() - 1; i++ ) {
-            if( extension == extensions[i] ) return true;
+            if( extension == "." + extensions[i] ) return true;
         }
         return false;
     }
