@@ -31,7 +31,7 @@
 #include <stdio.h>
 #include <string>
 
-namespace ic {
+namespace ic { // image clipper
 
 
 /**
