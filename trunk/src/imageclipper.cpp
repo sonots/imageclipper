@@ -41,8 +41,8 @@
 #include <string>
 #include <vector>
 #include "filesystem.h"
-#include "icsprintf.h"
-#include "iccvdrawwatershed.h"
+#include "icformat.h"
+#include "cvdrawwatershed.h"
 #include "opencvx/cvrect32f.h"
 #include "opencvx/cvdrawrectangle.h"
 #include "opencvx/cvcropimageroi.h"
@@ -245,7 +245,7 @@ void key_callback( const ArgParam* arg, CvCallbackParam* param )
         {
             if( param->rect.width > 0 && param->rect.height > 0 )
             {
-                string output_path = ic::sprintf( 
+                string output_path = icFormat( 
                     param->output_format, fs::dirname( filename ), 
                     fs::filename( filename ), fs::extension( filename ),
                     param->rect.x, param->rect.y, param->rect.width, param->rect.height, 
@@ -410,7 +410,7 @@ void key_callback( const ArgParam* arg, CvCallbackParam* param )
 
             if( param->img )
             {
-                param->rect = ic::cvShowImageAndWatershed( param->w_name, param->img, param->circle );
+                param->rect = cvShowImageAndWatershed( param->w_name, param->img, param->circle );
                 cvShowCroppedImage( param->miniw_name, param->img, 
                                     cvRect32fFromRect( param->rect, param->rotate ), 
                                     cvPointTo32f( param->shear ) );
@@ -571,7 +571,7 @@ void mouse_callback( int event, int x, int y, int flags, void* _param )
         param->shear.x = param->shear.y = 0;
 
         param->circle.width = (int) cvPointNorm( cvPoint( param->circle.x, param->circle.y ), cvPoint( x, y ) );
-        param->rect = ic::cvShowImageAndWatershed( param->w_name, param->img, param->circle );
+        param->rect = cvShowImageAndWatershed( param->w_name, param->img, param->circle );
         cvShowCroppedImage( param->miniw_name, param->img, 
                             cvRect32fFromRect( param->rect, param->rotate ), 
                             cvPointTo32f( param->shear ) );
@@ -653,7 +653,7 @@ void mouse_callback( int event, int x, int y, int flags, void* _param )
             param->circle.x += move.x;
             param->circle.y += move.y;
 
-            param->rect = ic::cvShowImageAndWatershed( param->w_name, param->img, param->circle );
+            param->rect = cvShowImageAndWatershed( param->w_name, param->img, param->circle );
             cvShowCroppedImage( param->miniw_name, param->img, 
                                 cvRect32fFromRect( param->rect, param->rotate ),
                                 cvPointTo32f( param->shear ) );
@@ -663,7 +663,7 @@ void mouse_callback( int event, int x, int y, int flags, void* _param )
         else if( resize_watershed )
         {
             param->circle.width = (int) cvPointNorm( cvPoint( param->circle.x, param->circle.y ), cvPoint( x, y ) );
-            param->rect = ic::cvShowImageAndWatershed( param->w_name, param->img, param->circle );
+            param->rect = cvShowImageAndWatershed( param->w_name, param->img, param->circle );
             cvShowCroppedImage( param->miniw_name, param->img, 
                                 cvRect32fFromRect( param->rect, param->rotate ), 
                                 cvPointTo32f( param->shear ) );
