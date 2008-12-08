@@ -789,8 +789,8 @@ void usage( const ArgParam* arg )
     cout << "    <arg_reference> would be a directory or an image or a video filename." << endl;
     cout << "    For a directory, image files in the directory will be read sequentially." << endl;
     cout << "    For an image, it starts to read a directory from the specified image file. " << endl;
-    cout << "    (A file is judged as an image based on its extension filename.)" << endl;
-    cout << "    A file except images is treated as a video and read frame by frame. " << endl;
+    cout << "    (A file is judged as an image based on its filename extension.)" << endl;
+    cout << "    A file except images is tried to be read as a video and read frame by frame. " << endl;
     cout << endl;
     cout << "  Options" << endl;
     cout << "    -o <output_format = imgout_format or vidout_format>" << endl;
@@ -844,7 +844,7 @@ void gui_usage()
     cout << "    q (quit) or ESC         : Quit. " << endl;
     cout << "    r (rotate) R (counter)  : Rotate rectangle in clockwise." << endl;
     cout << "    e (expand) E (shrink)   : Expand the recntagle size." << endl;
-    cout << "    h (left) j (down) k (up) l (right) : Move rectangle." << endl;
+    cout << "    h (left) j (down) k (up) l (right) : Move rectangle. (vi-like keybinds)" << endl;
     cout << "    y (left) u (down) i (up) o (right) : Resize rectangle (Move boundaries)." << endl;
     cout << "    n (left) m (down) , (up) . (right) : Shear deformation." << endl;
 }
