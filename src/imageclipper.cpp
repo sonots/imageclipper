@@ -208,12 +208,12 @@ int main( int argc, char *argv[] )
     // Mouse and Key callback
     cvNamedWindow( param->w_name, CV_WINDOW_AUTOSIZE );
     cvNamedWindow( param->miniw_name, CV_WINDOW_AUTOSIZE );
-    cvShowImageAndRectangle( param->w_name, param->img, 
-                             cvRect32fFromRect( param->rect, param->rotate ), 
-                             cvPointTo32f( param->shear ) );
     cvShowCroppedImage( param->miniw_name, param->img, 
                         cvRect32fFromRect( param->rect, param->rotate ), 
                         cvPointTo32f( param->shear ) );
+    cvShowImageAndRectangle( param->w_name, param->img, 
+                             cvRect32fFromRect( param->rect, param->rotate ), 
+                             cvPointTo32f( param->shear ) );
     cvSetMouseCallback( param->w_name, mouse_callback, param );
     key_callback( cap, fileiter, filelist, param, arg );
     cvDestroyWindow( param->w_name );
@@ -226,7 +226,7 @@ void key_callback( CvCapture* cap, vector<string>::iterator fileiter, vector<str
 
     while( true ) // key callback
     {
-        int key = cvWaitKey( 0 );
+        char key = cvWaitKey( 0 );
 
         // 32 is SPACE
         if( key == 's' || key == 32 ) // Save
