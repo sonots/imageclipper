@@ -72,12 +72,13 @@ void cvParticleSetBound( CvParticle* p );
 void cvParticleInit( CvParticle* p, const CvParticle* init = NULL );
 void cvReleaseParticle( CvParticle** p );
 
-void cvParticleResample( CvParticle* p );
+void cvParticleResample( CvParticle* p, bool marginal = true );
 void cvParticleTransition( CvParticle* p );
 
 void cvParticleMarginalize( CvParticle* p );
 void cvParticleNormalize( CvParticle* p );
 int  cvParticleMaxParticle( const CvParticle* p );
+CvMat* cvParticleMeanParticle( const CvParticle* p );
 void cvParticleBound( CvParticle* p );
 
 void cvParticlePrint( const CvParticle* p, int p_id = -1 );
@@ -101,7 +102,7 @@ void cvParticlePrint( const CvParticle*p, int p_id )
         }
     }
     else {
-        int i, k = 0;
+        int i;
         for( i = 0; i < p->num_states; i++ )
         {
             printf( "%6.1f ", cvmGet( p->particles, i, p_id ) );
@@ -119,7 +120,7 @@ void cvParticlePrint( const CvParticle*p, int p_id )
  *
  * @param particle
  */
-void cvParticleResample( CvParticle* p )
+void cvParticleResample( CvParticle* p, bool marginal )
 {
     int i, j, np, k = 0;
     CvMat* particle, hdr;
@@ -127,8 +128,11 @@ void cvParticleResample( CvParticle* p )
     double prob;
     int max_loc;
 
-    cvParticleMarginalize( p );
-    cvParticleNormalize( p );
+    if( marginal )
+    {
+        cvParticleMarginalize( p );
+        cvParticleNormalize( p );
+    }
 
     k = 0;
     for( i = 0; i < p->num_particles; i++ )
@@ -167,6 +171,52 @@ int cvParticleMaxParticle( const CvParticle* p )
     CvPoint min_loc, max_loc;
     cvMinMaxLoc( p->particle_probs, &minval, &maxval, &min_loc, &max_loc );
     return max_loc.x;
+}
+
+/**
+ * Get mean state
+ *
+ * @param particle
+ * @param meanstate num_states x 1, CV_32FC1 or CV_64FC1
+ * @return CvMat*
+ */
+void cvParticleMeanParticle( const CvParticle* p, CvMat* meanstate )
+{
+    CvMat* probs = NULL;
+    CvMat* mul = NULL;
+    CvMat* state, statehdr;
+    int i, j;
+    CvScalar avg;
+    CV_FUNCNAME( "cvParticleMeanParticle" );
+    __BEGIN__;
+    CV_ASSERT( meanstate->rows == p->num_states && meanstate->cols == 1 );
+    if( !p->logprob )
+    {
+        probs = p->observe_probs;
+    }
+    else
+    {
+        probs = cvCreateMat( 1, p->num_particles, CV_64FC1 );
+        cvExp( p->particle_probs, probs );
+    }
+    mul = cvCreateMat( 1, p->num_particles, CV_64FC1 );
+
+    for( i = 0; i < p->num_states; i++ )
+    {
+        state = cvGetRow( p->particles, &statehdr, i );
+        // cvMul( state, probs, mul ); // must be same type (not 32F and 64F)
+        for( j = 0; j < p->num_particles; j++ )
+        {
+            cvmSet( mul, 0, j, cvmGet( state, 0, j ) * cvmGet( probs, 0, j ) );
+        }
+        avg = cvSum( mul );
+        cvmSet( meanstate, i, 0, avg.val[0] );
+    }
+
+    cvReleaseMat( &mul );
+    if( probs != p->particle_probs )
+        cvReleaseMat( &probs );
+    __END__;
 }
 
 /**
@@ -248,7 +298,6 @@ void cvParticleBound( CvParticle* p )
     int row, col;
     double lower, upper;
     bool circular;
-    int depend;
     CvMat* stateparticles, hdr;
     float state;
     // @todo:     np.width   = (double)MAX( 2.0, MIN( maxX - 1 - x, width ) );
@@ -284,7 +333,7 @@ void cvParticleBound( CvParticle* p )
  */
 void cvParticleTransition( CvParticle* p )
 {
-    int i, j;
+    int i;
     CvMat* transits = cvCreateMat( p->num_states, p->num_particles, p->particles->type );
     CvMat* noises   = cvCreateMat( p->num_states, p->num_particles, p->particles->type );
     CvMat* noise, noisehdr;
@@ -327,7 +376,7 @@ void cvParticleInit( CvParticle* p, const CvParticle* init )
     if( init )
     {
         int *num_copy;
-        CvMat init_state;
+        CvMat init_particle;
 
         int divide = p->num_particles / init->num_particles;
         int remain = p->num_particles - divide * init->num_particles;
@@ -340,10 +389,10 @@ void cvParticleInit( CvParticle* p, const CvParticle* init )
         k = 0;
         for( i = 0; i < init->num_particles; i++ )
         {
-            cvGetCol( init->particles, &init_state, i );
+            cvGetCol( init->particles, &init_particle, i );
             for( j = 0; j < num_copy[i]; j++ )
             {
-                cvSetCol( &init_state, p->particles, k++ );
+                cvSetCol( &init_particle, p->particles, k++ );
             }
         }
 
@@ -436,12 +485,12 @@ void cvReleaseParticle( CvParticle** particle )
     p = *particle;
     if( !p ) EXIT;
     
-    cvReleaseMat( &p->dynamics );
-    cvReleaseMat( &p->std );
-    cvReleaseMat( &p->bound );
-    cvReleaseMat( &p->particles );
-    cvReleaseMat( &p->probs );
-    cvFree( &p );
+    CV_CALL( cvReleaseMat( &p->dynamics ) );
+    CV_CALL( cvReleaseMat( &p->std ) );
+    CV_CALL( cvReleaseMat( &p->bound ) );
+    CV_CALL( cvReleaseMat( &p->particles ) );
+    CV_CALL( cvReleaseMat( &p->probs ) );
+    CV_CALL( cvFree( &p ) );
     __END__;
 }
 
