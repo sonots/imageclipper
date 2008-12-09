@@ -59,9 +59,10 @@ typedef struct CvCallbackParam {
     const char* miniw_name;
     IplImage* img;
     CvRect rect;
-    CvRect circle; // use x, y for center, width as radius. width == 0 means watershed is off
     int rotate;
     CvPoint shear;
+    CvRect circle; // use x, y for center, width as radius for wathershed marker
+    bool watershed;
     vector<string> imtypes;
     vector<string> filelist; // for image or directory load
     vector<string>::iterator fileiter;
@@ -100,9 +101,10 @@ int main( int argc, char *argv[] )
         "Cropped",
         NULL,
         cvRect(0,0,0,0),
-        cvRect(0,0,0,0),
         0,
         cvPoint(0,0),
+        cvRect(0,0,0,0),
+        false,
         vector<string>(),
         vector<string>(),
         vector<string>::iterator(),
@@ -335,7 +337,7 @@ void key_callback( const ArgParam* arg, CvCallbackParam* param )
             break;
         }
 
-        if( param->circle.width > 0 ) // watershed
+        if( param->watershed ) // watershed
         {
             // Rectangle Movement (Vi like hotkeys)
             if( key == 'h' ) // Left
@@ -567,6 +569,7 @@ void mouse_callback( int event, int x, int y, int flags, void* _param )
     else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_MBUTTON ||
         ( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_LBUTTON && flags & CV_EVENT_FLAG_SHIFTKEY ) )
     {
+        param->watershed = true;
         param->rotate  = 0;
         param->shear.x = param->shear.y = 0;
 
@@ -584,7 +587,7 @@ void mouse_callback( int event, int x, int y, int flags, void* _param )
     }
     else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_LBUTTON )
     {
-        param->circle.width = 0; // disable watershed
+        param->watershed = false; // disable watershed
         param->rotate       = 0;
         param->shear.x      = param->shear.y = 0;
 
@@ -606,7 +609,7 @@ void mouse_callback( int event, int x, int y, int flags, void* _param )
     {
         point0 = cvPoint( x, y );
 
-        if( param->circle.width != 0 )
+        if( param->watershed )
         {
             CvPoint center = cvPoint( param->circle.x, param->circle.y );
             int radius = (int) cvPointNorm( center, point0 );
@@ -621,7 +624,8 @@ void mouse_callback( int event, int x, int y, int flags, void* _param )
         }
         if( !resize_watershed && !move_watershed )
         {
-            param->circle.width = 0;
+            param->watershed = false;
+
             if( ( param->rect.x < x && x < param->rect.x + param->rect.width ) && 
                 ( param->rect.y < y && y < param->rect.y + param->rect.height ) )
             {
@@ -645,7 +649,7 @@ void mouse_callback( int event, int x, int y, int flags, void* _param )
             }
         }
     }
-    else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_RBUTTON && param->circle.width != 0 ) // Move or resize for watershed
+    else if( event == CV_EVENT_MOUSEMOVE && flags & CV_EVENT_FLAG_RBUTTON && param->watershed ) // Move or resize for watershed
     {
         if( move_watershed )
         {
