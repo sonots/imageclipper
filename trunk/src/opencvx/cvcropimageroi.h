@@ -33,7 +33,7 @@
 #include "cvcreateaffine.h"
 #include "cvrect32f.h"
 
-CVAPI(void) cvCropImageROI( IplImage* img, IplImage* dst, 
+CVAPI(void) cvCropImageROI( const IplImage* img, IplImage* dst, 
                             CvRect32f rect32f = cvRect32f(0,0,1,1,0),
                             CvPoint2D32f shear = cvPoint2D32f(0,0) );
 CVAPI(void) cvShowCroppedImage( const char* w_name, IplImage* orig, 
@@ -56,7 +56,7 @@ CVAPI(void) cvShowCroppedImage( const char* w_name, IplImage* orig,
  *                     The shear deformation parameter shx and shy
  * @return void
  */
-CVAPI(void) cvCropImageROI( IplImage* img, IplImage* dst, CvRect32f rect32f, CvPoint2D32f shear )
+CVAPI(void) cvCropImageROI( const IplImage* img, IplImage* dst, CvRect32f rect32f, CvPoint2D32f shear )
 {
     CvRect rect = cvRectFromRect32f( rect32f );
     float angle = rect32f.angle;
@@ -70,9 +70,9 @@ CVAPI(void) cvCropImageROI( IplImage* img, IplImage* dst, CvRect32f rect32f, CvP
         rect.x >= 0 && rect.y >= 0 && 
         rect.x + rect.width < img->width && rect.y + rect.height < img->height )
     {
-        cvSetImageROI( img, rect );
-        cvCopy( img, dst );
-        cvResetImageROI( img );                
+        CvMat subimg;
+        cvGetSubRect( img, &subimg, rect );
+        cvConvert( &subimg, dst );
     }
     else if( shear.x == 0 && shear.y == 0 )
     {
@@ -90,8 +90,8 @@ CVAPI(void) cvCropImageROI( IplImage* img, IplImage* dst, CvRect32f rect32f, CvP
         {
             for( y = 0; y < rect.height; y++ )
             {
-                xp = (int)( c * x + -s * y + 0.5 ) + rect.x;
-                yp = (int)( s * x + c * y + 0.5 ) + rect.y;
+                xp = cvRound( c * x + -s * y ) + rect.x;
+                yp = cvRound( s * x + c * y ) + rect.y;
                 if( xp < 0 || xp >= img->width || yp < 0 || yp >= img->height ) continue;
                 for( ch = 0; ch < img->nChannels; ch++ )
                 {
@@ -118,8 +118,8 @@ CVAPI(void) cvCropImageROI( IplImage* img, IplImage* dst, CvRect32f rect32f, CvP
             {
                 cvmSet( xy, 1, 0, y / rect32f.height );
                 cvMatMul( affine, xy, xyp );
-                xp = (int)( cvmGet( xyp, 0, 0 ) + 0.5 );
-                yp = (int)( cvmGet( xyp, 1, 0 ) + 0.5 );
+                xp = cvRound( cvmGet( xyp, 0, 0 ) );
+                yp = cvRound( cvmGet( xyp, 1, 0 ) );
                 if( xp < 0 || xp >= img->width || yp < 0 || yp >= img->height ) continue;
                 for( ch = 0; ch < img->nChannels; ch++ )
                 {

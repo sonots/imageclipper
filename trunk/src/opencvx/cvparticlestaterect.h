@@ -1,6 +1,6 @@
 /** @file
  * Rotated rectangle state particle filter +
- * 2nd order AR dynamics model ( in fact, next = current + speed + noise )
+ * 1nd order AR dynamics model ( in fact, next = current + noise )
  *
  * Use this file as a template of definitions of states and 
  * state transition model for particle filter
@@ -32,8 +32,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#ifndef CV_PARTICLE_ROTRECT2_H
-#define CV_PARTICLE_ROTRECT2_H
+#ifndef CV_PARTICLE_ROTRECT_H
+#define CV_PARTICLE_ROTRECT_H
 
 #include "cvparticle.h"
 #include "cvdrawrectangle.h"
@@ -44,7 +44,7 @@ using namespace std;
 
 /********************** Definition of a particle *****************************/
 
-int num_states = 10;
+int num_states = 5;
 
 // Definition of meanings of 10 states.
 // This kinds of structures is not necessary to be defined, 
@@ -55,11 +55,6 @@ typedef struct CvParticleState {
     double width;    // width of a rectangle
     double height;   // height of a rectangle
     double angle;    // rotation around center. degree
-    double xp;       // previous center coord of a rectangle
-    double yp;       // previous center coord of a rectangle
-    double widthp;   // previous width of a rectangle
-    double heightp;  // previous height of a rectangle
-    double anglep;   // previous rotation around center. degree
 } CvParticleState;
 
 // Definition of dynamics model
@@ -67,23 +62,21 @@ typedef struct CvParticleState {
 // curr_x =: curr_x + dx + noise = curr_x + (curr_x - prev_x) + noise
 // prev_x =: curr_x
 double dynamics[] = {
-    2, 0, 0, 0, 0, -1, 0, 0, 0, 0,
-    0, 2, 0, 0, 0, 0, -1, 0, 0, 0,
-    0, 0, 2, 0, 0, 0, 0, -1, 0, 0,
-    0, 0, 0, 2, 0, 0, 0, 0, -1, 0,
-    0, 0, 0, 0, 2, 0, 0, 0, 0, -1,
-    1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+    2, 0, 0, 0, 0, 
+    0, 2, 0, 0, 0, 
+    0, 0, 2, 0, 0, 
+    0, 0, 0, 2, 0, 
+    0, 0, 0, 0, 2, 
 };
 
 /********************** Function Prototypes *********************************/
 
 // Functions for CvParticleState structure ( constructor, getter, setter )
-inline CvParticleState cvParticleState( double x, double y, double width, double height, double angle = 0,
-                                        double xp = 0, double yp = 0, double widthp = 0, double heightp = 0, double anglep =0 );
+inline CvParticleState cvParticleState( double x, 
+                                        double y, 
+                                        double width, 
+                                        double height, 
+                                        double angle = 0 );
 CvParticleState cvParticleStateGet( const CvParticle* p, int p_id );
 void cvParticleStateSet( const CvParticle* p, int p_id, CvParticleState &state );
 
@@ -97,14 +90,19 @@ void cvParticleStatePrint( const CvParticleState& state );
 
 /****************** Functions for CvParticleState structure ******************/
 
+// This kinds of state definitions are not necessary, 
+// but helps readability of codes for sure.
+
 /**
  * Constructor
  */
-inline CvParticleState cvParticleState( double x, double y, double width, double height, double angle,
-                                        double xp, double yp, double widthp, double heightp, double anglep )
+inline CvParticleState cvParticleState( double x, 
+                                        double y, 
+                                        double width, 
+                                        double height, 
+                                        double angle )
 {
-    CvParticleState state = { x, y, width, height, angle, 
-                              xp, yp, widthp, heightp, anglep };
+    CvParticleState state = { x, y, width, height, angle };
     return state;
 }
 
@@ -122,11 +120,6 @@ CvParticleState cvParticleStateGet( const CvParticle* p, int p_id )
     s.width   = cvmGet( p->particles, 2, p_id );
     s.height  = cvmGet( p->particles, 3, p_id );
     s.angle   = cvmGet( p->particles, 4, p_id );
-    s.xp      = cvmGet( p->particles, 5, p_id );
-    s.yp      = cvmGet( p->particles, 6, p_id );
-    s.widthp  = cvmGet( p->particles, 7, p_id );
-    s.heightp = cvmGet( p->particles, 8, p_id );
-    s.anglep  = cvmGet( p->particles, 9, p_id );
     return s;
 }
 
@@ -145,11 +138,6 @@ void cvParticleStateSet( const CvParticle* p, int p_id, CvParticleState &state )
     cvmSet( p->particles, 2, p_id, state.width );
     cvmSet( p->particles, 3, p_id, state.height );
     cvmSet( p->particles, 4, p_id, state.angle );
-    cvmSet( p->particles, 5, p_id, state.xp );
-    cvmSet( p->particles, 6, p_id, state.yp );
-    cvmSet( p->particles, 7, p_id, state.widthp );
-    cvmSet( p->particles, 8, p_id, state.heightp );
-    cvmSet( p->particles, 9, p_id, state.anglep );
 }
 
 /*************************** Particle Filter Configuration *********************************/
@@ -170,11 +158,6 @@ void cvParticleStateConfig( CvParticle* p, CvSize imsize, CvParticleState& std )
         std.width,
         std.height,
         std.angle,
-        0,
-        0,
-        0,
-        0,
-        0
     };
     CvMat stdmat = cvMat( p->num_states, 1, CV_64FC1, stdarr );
 
@@ -187,11 +170,6 @@ void cvParticleStateConfig( CvParticle* p, CvSize imsize, CvParticleState& std )
         1, imsize.width, false,
         1, imsize.height, false,
         0, 360, true,
-        0, 0, 0,
-        0, 0, 0,
-        0, 0, 0,
-        0, 0, 0,
-        0, 0, 0
     };
     CvMat boundmat = cvMat( p->num_states, 3, CV_64FC1, boundarr );
     cvParticleSetDynamics( p, &dynamicsmat );
@@ -253,11 +231,6 @@ void cvParticleStatePrint( const CvParticleState& state )
     printf( "width :%f ", state.width );
     printf( "height :%f ", state.height );
     printf( "angle :%f\n", state.angle );
-    printf( "xp:%f ", state.xp );
-    printf( "yp:%f ", state.yp );
-    printf( "widthp:%f ", state.widthp );
-    printf( "heightp:%f ", state.heightp );
-    printf( "anglep:%f\n", state.anglep );
     fflush( stdout );
 }
 
