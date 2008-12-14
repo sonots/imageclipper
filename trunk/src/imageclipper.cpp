@@ -49,7 +49,7 @@
 #include "opencvx/cvpointnorm.h"
 using namespace std;
 
-/************************************ Structure *************************************/
+/************************************ Structure ******************************/
 
 /**
 * A Callback function structure
@@ -69,6 +69,7 @@ typedef struct CvCallbackParam {
     CvCapture* cap;          // for video load
     int frame;               // video iter
     const char* output_format;
+    int inc;
 } CvCallbackParam ;
 
 /**
@@ -83,7 +84,7 @@ typedef struct ArgParam {
     int   frame;
 } ArgParam;
 
-/************************* Function Prototypes *********************************/
+/************************* Function Prototypes ******************************/
 void arg_parse( int argc, char** argv, ArgParam* arg = NULL );
 void usage( const ArgParam* arg );
 void gui_usage();
@@ -91,7 +92,7 @@ void mouse_callback( int event, int x, int y, int flags, void* _param );
 void load_reference( const ArgParam* arg, CvCallbackParam* param );
 void key_callback( const ArgParam* arg, CvCallbackParam* param );
 
-/************************* Main ************************************************/
+/************************* Main **********************************************/
 
 int main( int argc, char *argv[] )
 {
@@ -109,7 +110,9 @@ int main( int argc, char *argv[] )
         vector<string>(),
         vector<string>::iterator(),
         NULL,
-        0
+        0,
+        NULL,
+        1
     };
     CvCallbackParam* param = &init_param;
     param->imtypes.push_back( "bmp" );
@@ -336,78 +339,88 @@ void key_callback( const ArgParam* arg, CvCallbackParam* param )
         {
             break;
         }
+        else if( key == '+' )
+        {
+            param->inc += 1;
+            cout << "Inc: " << param->inc << endl;
+        }
+        else if( key == '-' )
+        {
+            param->inc = max( 1, param->inc - 1 );
+            cout << "Inc: " << param->inc << endl;
+        }
 
         if( param->watershed ) // watershed
         {
             // Rectangle Movement (Vi like hotkeys)
             if( key == 'h' ) // Left
             {
-                param->circle.x -= 1;
+                param->circle.x -= param->inc;
             }
             else if( key == 'j' ) // Down
             {
-                param->circle.y += 1;
+                param->circle.y += param->inc;
             }
             else if( key == 'k' ) // Up
             {
-                param->circle.y -= 1;
+                param->circle.y -= param->inc;
             }
             else if( key == 'l' ) // Right
             {
-                param->circle.x += 1;
+                param->circle.x += param->inc;
             }
             // Rectangle Resize
             else if( key == 'y' ) // Shrink width
             {
-                param->circle.width -= 1;
+                param->circle.width -= param->inc;
             }
             else if( key == 'u' ) // Expand height
             {
-                param->circle.width += 1;
+                param->circle.width += param->inc;
             }
             else if( key == 'i' ) // Shrink height
             {
-                param->circle.width -= 1;
+                param->circle.width -= param->inc;
             }
             else if( key == 'o' ) // Expand width
             {
-                param->circle.width += 1;
+                param->circle.width += param->inc;
             }
             // Shear Deformation
             else if( key == 'n' ) // Left
             {
-                param->shear.x -= 1;
+                param->shear.x -= param->inc;
             }
             else if( key == 'm' ) // Down
             {
-                param->shear.y += 1;
+                param->shear.y += param->inc;
             }
             else if( key == ',' ) // Up
             {
-                param->shear.y -= 1;
+                param->shear.y -= param->inc;
             }
             else if( key == '.' ) // Right
             {
-                param->shear.x += 1;
+                param->shear.x += param->inc;
             }
             // Rotation
             else if( key == 'R' ) // Counter-Clockwise
             {
-                param->rotate += 1;
+                param->rotate += param->inc;
                 param->rotate = (param->rotate >= 360) ? param->rotate - 360 : param->rotate;
             }
             else if( key == 'r' ) // Clockwise
             {
-                param->rotate -= 1;
+                param->rotate -= param->inc;
                 param->rotate = (param->rotate < 0) ? 360 + param->rotate : param->rotate;
             }
             else if( key == 'e' ) // Expand
             {
-                param->circle.width += 1;
+                param->circle.width += param->inc;
             }
             else if( key == 'E' ) // Shrink
             {
-                param->circle.width -= 1;
+                param->circle.width -= param->inc;
             }
 
             if( param->img )
@@ -423,78 +436,78 @@ void key_callback( const ArgParam* arg, CvCallbackParam* param )
             // Rectangle Movement (Vi like hotkeys)
             if( key == 'h' ) // Left
             {
-                param->rect.x -= 1;
+                param->rect.x -= param->inc;
             }
             else if( key == 'j' ) // Down
             {
-                param->rect.y += 1;
+                param->rect.y += param->inc;
             }
             else if( key == 'k' ) // Up
             {
-                param->rect.y -= 1;
+                param->rect.y -= param->inc;
             }
             else if( key == 'l' ) // Right
             {
-                param->rect.x += 1;
+                param->rect.x += param->inc;
             }
             // Rectangle Resize
             else if( key == 'y' ) // Shrink width
             {
-                param->rect.width = max( 0, param->rect.width - 1 );
+                param->rect.width = max( 0, param->rect.width - param->inc );
             }
             else if( key == 'u' ) // Expand height
             {
-                param->rect.height += 1;
+                param->rect.height += param->inc;
             }
             else if( key == 'i' ) // Shrink height
             {
-                param->rect.height = max( 0, param->rect.height - 1 );
+                param->rect.height = max( 0, param->rect.height - param->inc );
             }
             else if( key == 'o' ) // Expand width
             {
-                param->rect.width += 1;
+                param->rect.width += param->inc;
             }
             // Shear Deformation
             else if( key == 'n' ) // Left
             {
-                param->shear.x -= 1;
+                param->shear.x -= param->inc;
             }
             else if( key == 'm' ) // Down
             {
-                param->shear.y += 1;
+                param->shear.y += param->inc;
             }
             else if( key == ',' ) // Up
             {
-                param->shear.y -= 1;
+                param->shear.y -= param->inc;
             }
             else if( key == '.' ) // Right
             {
-                param->shear.x += 1;
+                param->shear.x += param->inc;
             }
             // Rotation
             else if( key == 'R' ) // Counter-Clockwise
             {
-                param->rotate += 1;
+                param->rotate += param->inc;
                 param->rotate = (param->rotate >= 360) ? param->rotate - 360 : param->rotate;
             }
             else if( key == 'r' ) // Clockwise
             {
-                param->rotate -= 1;
+                param->rotate -= param->inc;
                 param->rotate = (param->rotate < 0) ? 360 + param->rotate : param->rotate;
             }
             else if( key == 'e' ) // Expand
             {
-                param->rect.x = max( 0, param->rect.x - 1 );
-                param->rect.width += 2;
-                param->rect.y = max( 0, param->rect.y - 1 );
-                param->rect.height += 2;
+                param->rect.x = max( 0, param->rect.x - param->inc );
+                param->rect.width += 2 * param->inc;
+                param->rect.y = max( 0, param->rect.y - param->inc );
+                param->rect.height += 2 * param->inc;
             }
             else if( key == 'E' ) // Shrink
             {
-                param->rect.x = min( param->img->width, param->rect.x + 1 );
-                param->rect.width = max( 0, param->rect.width - 2 );
-                param->rect.y = min( param->img->height, param->rect.y + 1 );
-                param->rect.height = max( 0, param->rect.height - 2 );
+                param->rect.x = min( param->img->width, param->rect.x + param->inc );
+                param->rect.width = max( 0, param->rect.width - 2 * param->inc );
+                param->rect.y = min( param->img->height, param->rect.y + param->inc );
+                param->rect.height = max( 0, param->rect.height - 2 * param->inc );
             }
             /*
               if( key == 'e' || key == 'E' ) // Expansion and Shrink so that ratio does not change
@@ -511,8 +524,8 @@ void key_callback( const ArgParam* arg, CvCallbackParam* param )
               }
               int ratio_width = param->rect.width / gcd;
               int ratio_height = param->rect.height / gcd;
-              if( key == 'e' ) gcd += 1;
-              else if( key == 'E' ) gcd -= 1;
+              if( key == 'e' ) gcd += param->inc;
+              else if( key == 'E' ) gcd -= param->inc;
               if( gcd > 0 )
               {
               cout << ratio_width << ":" << ratio_height << " * " << gcd << endl;
@@ -848,6 +861,7 @@ void gui_usage()
     cout << "    q (quit) or ESC         : Quit. " << endl;
     cout << "    r (rotate) R (counter)  : Rotate rectangle in clockwise." << endl;
     cout << "    e (expand) E (shrink)   : Expand the recntagle size." << endl;
+    cout << "    + (incl)   - (decl)     : Increment the step size to increment." << endl;
     cout << "    h (left) j (down) k (up) l (right) : Move rectangle. (vi-like keybinds)" << endl;
     cout << "    y (left) u (down) i (up) o (right) : Resize rectangle (Move boundaries)." << endl;
     cout << "    n (left) m (down) , (up) . (right) : Shear deformation." << endl;
