@@ -414,12 +414,12 @@ void key_callback( const ArgParam* arg, CvCallbackParam* param )
                 param->shear.x += param->inc;
             }
             // Rotation
-            else if( key == 'R' ) // Counter-Clockwise
+            else if( key == 'r' ) // Counter-Clockwise
             {
                 param->rotate += param->inc;
                 param->rotate = (param->rotate >= 360) ? param->rotate - 360 : param->rotate;
             }
-            else if( key == 'r' ) // Clockwise
+            else if( key == 'R' ) // Clockwise
             {
                 param->rotate -= param->inc;
                 param->rotate = (param->rotate < 0) ? 360 + param->rotate : param->rotate;
@@ -495,12 +495,12 @@ void key_callback( const ArgParam* arg, CvCallbackParam* param )
                 param->shear.x += param->inc;
             }
             // Rotation
-            else if( key == 'R' ) // Counter-Clockwise
+            else if( key == 'r' ) // Counter-Clockwise
             {
                 param->rotate += param->inc;
                 param->rotate = (param->rotate >= 360) ? param->rotate - 360 : param->rotate;
             }
-            else if( key == 'r' ) // Clockwise
+            else if( key == 'R' ) // Clockwise
             {
                 param->rotate -= param->inc;
                 param->rotate = (param->rotate < 0) ? 360 + param->rotate : param->rotate;
@@ -869,11 +869,11 @@ void gui_usage()
     cout << "    SPACE                   : Save and Forward." << endl;
     cout << "    b (backward)            : Backward. " << endl;
     cout << "    q (quit) or ESC         : Quit. " << endl;
-    cout << "    r (rotate) R (counter)  : Rotate rectangle in clockwise." << endl;
+    cout << "    r (rotate) R (opposite) : Rotate rectangle in counter-clockwise." << endl;
     cout << "    e (expand) E (shrink)   : Expand the recntagle size." << endl;
     cout << "    + (incl)   - (decl)     : Increment the step size to increment." << endl;
     cout << "    h (left) j (down) k (up) l (right) : Move rectangle. (vi-like keybinds)" << endl;
-    cout << "    y (left) u (down) i (up) o (right) : Resize rectangle (Move boundaries)." << endl;
+    cout << "    y (left) u (down) i (up) o (right) : Resize rectangle. (Move boundaries)" << endl;
     cout << "    n (left) m (down) , (up) . (right) : Shear deformation." << endl;
 }
 
