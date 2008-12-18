@@ -163,22 +163,22 @@ int main( int argc, char *argv[] )
  */
 void load_reference( const ArgParam* arg, CvCallbackParam* param )
 {
-    bool is_directory = fs::is_directory( arg->reference );
-    bool is_image = fs::match_extensions( arg->reference, param->imtypes );
-    bool is_video = !is_directory & !is_image;
+    bool is_dir   = filesystem::is_dir( arg->reference );
+    bool is_image = filesystem::match_extensions( arg->reference, param->imtypes );
+    bool is_video = !is_dir & !is_image;
     param->output_format = ( arg->output_format != NULL ? arg->output_format : 
         ( is_video ? arg->vidout_format : arg->imgout_format ) );
     param->frame = arg->frame;
 
-    if( is_directory || is_image )
+    if( is_dir || is_image )
     {
         cerr << "Now reading a directory..... ";
-        if( is_directory )
+        if( is_dir )
         {
-            param->filelist = fs::filelist( arg->reference, param->imtypes, "file" );
+            param->filelist = filesystem::filelist( arg->reference, param->imtypes, "file" );
             if( param->filelist.empty() )
             {
-                cerr << "No image file exist under a directory " << fs::realpath( arg->reference ) << endl << endl;
+                cerr << "No image file exist under a directory " << filesystem::realpath( arg->reference ) << endl << endl;
                 usage( arg );
                 exit(1);
             }
@@ -186,44 +186,44 @@ void load_reference( const ArgParam* arg, CvCallbackParam* param )
         }
         else
         {
-            if( !fs::exists( arg->reference ) )
+            if( !filesystem::exists( arg->reference ) )
             {
-                cerr << "The image file " << fs::realpath( arg->reference ) << " does not exist." << endl << endl;
+                cerr << "The image file " << filesystem::realpath( arg->reference ) << " does not exist." << endl << endl;
                 usage( arg );
                 exit(1);
             }
-            param->filelist = fs::filelist( fs::dirname( arg->reference ), param->imtypes, "file" );
+            param->filelist = filesystem::filelist( filesystem::dirname( arg->reference ), param->imtypes, "file" );
             // step up till specified file
             for( param->fileiter = param->filelist.begin(); param->fileiter != param->filelist.end(); param->fileiter++ )
             {
-                if( fs::realpath( *param->fileiter ) == fs::realpath( arg->reference ) ) break;
+                if( filesystem::realpath( *param->fileiter ) == filesystem::realpath( arg->reference ) ) break;
             }
         }
         cerr << "Done!" << endl;
-        cerr << "Now showing " << fs::realpath( *param->fileiter ) << endl;
-        param->img = cvLoadImage( fs::realpath( *param->fileiter ).c_str() );
+        cerr << "Now showing " << filesystem::realpath( *param->fileiter ) << endl;
+        param->img = cvLoadImage( filesystem::realpath( *param->fileiter ).c_str() );
     }
     else if( is_video )
     {
-        if ( !fs::exists( arg->reference ) )
+        if ( !filesystem::exists( arg->reference ) )
         {
-            cerr << "The file " << fs::realpath( arg->reference ) << " does not exist or is not readable." << endl << endl;
+            cerr << "The file " << filesystem::realpath( arg->reference ) << " does not exist or is not readable." << endl << endl;
             usage( arg );
             exit(1);
         }
         cerr << "Now reading a video..... ";
-        param->cap = cvCaptureFromFile( fs::realpath( arg->reference ).c_str() );
+        param->cap = cvCaptureFromFile( filesystem::realpath( arg->reference ).c_str() );
         cvSetCaptureProperty( param->cap, CV_CAP_PROP_POS_FRAMES, arg->frame - 1 );
         param->img = cvQueryFrame( param->cap );
         if( param->img == NULL )
         {
-            cerr << "The file " << fs::realpath( arg->reference ) << " was assumed as a video, but not loadable." << endl << endl;
+            cerr << "The file " << filesystem::realpath( arg->reference ) << " was assumed as a video, but not loadable." << endl << endl;
             usage( arg );
             exit(1);
         }
         cerr << "Done!" << endl;
         cerr << cvGetCaptureProperty( param->cap, CV_CAP_PROP_FRAME_COUNT ) << " frames totally." << endl;
-        cerr << "Now showing " << fs::realpath( arg->reference ) << " " << arg->frame << endl;
+        cerr << "Now showing " << filesystem::realpath( arg->reference ) << " " << arg->frame << endl;
 #if (defined(WIN32) || defined(WIN64)) && (CV_MAJOR_VERSION < 1 || (CV_MAJOR_VERSION == 1 && CV_MINOR_VERSION < 1))
         param->img->origin = 0;
         cvFlip( param->img );
@@ -231,7 +231,7 @@ void load_reference( const ArgParam* arg, CvCallbackParam* param )
     }
     else
     {
-        cerr << "The directory " << fs::realpath( arg->reference ) << " does not exist." << endl << endl;
+        cerr << "The directory " << filesystem::realpath( arg->reference ) << " does not exist." << endl << endl;
         usage( arg );
         exit(1);
     }
@@ -261,17 +261,17 @@ void key_callback( const ArgParam* arg, CvCallbackParam* param )
             if( param->rect.width > 0 && param->rect.height > 0 )
             {
                 string output_path = icFormat( 
-                    param->output_format, fs::dirname( filename ), 
-                    fs::filename( filename ), fs::extension( filename ),
+                    param->output_format, filesystem::dirname( filename ), 
+                    filesystem::filename( filename ), filesystem::extension( filename ),
                     param->rect.x, param->rect.y, param->rect.width, param->rect.height, 
                     param->frame, param->rotate );
 
-                if( !fs::match_extensions( output_path, param->imtypes ) )
+                if( !filesystem::match_extensions( output_path, param->imtypes ) )
                 {
-                    cerr << "The image type " << fs::extension( output_path ) << " is not supported." << endl;
+                    cerr << "The image type " << filesystem::extension( output_path ) << " is not supported." << endl;
                     exit(1);
                 }
-                fs::create_directories( fs::dirname( output_path ) );
+                filesystem::r_mkdir( filesystem::dirname( output_path ) );
 
                 IplImage* crop = cvCreateImage( 
                     cvSize( param->rect.width, param->rect.height ), 
@@ -279,8 +279,8 @@ void key_callback( const ArgParam* arg, CvCallbackParam* param )
                 cvCropImageROI( param->img, crop, 
                                 cvRect32fFromRect( param->rect, param->rotate ), 
                                 cvPointTo32f( param->shear ) );
-                cvSaveImage( fs::realpath( output_path ).c_str(), crop );
-                cout << fs::realpath( output_path ) << endl;
+                cvSaveImage( filesystem::realpath( output_path ).c_str(), crop );
+                cout << filesystem::realpath( output_path ) << endl;
                 cvReleaseImage( &crop );
             }
         }
@@ -299,7 +299,7 @@ void key_callback( const ArgParam* arg, CvCallbackParam* param )
                     cvFlip( param->img );
 #endif
                     param->frame++;
-                    cout << "Now showing " << fs::realpath( filename ) << " " <<  param->frame << endl;
+                    cout << "Now showing " << filesystem::realpath( filename ) << " " <<  param->frame << endl;
                 }
             }
             else
@@ -309,8 +309,8 @@ void key_callback( const ArgParam* arg, CvCallbackParam* param )
                     cvReleaseImage( &param->img );
                     param->fileiter++;
                     filename = *param->fileiter;
-                    param->img = cvLoadImage( fs::realpath( filename ).c_str() );
-                    cout << "Now showing " << fs::realpath( filename ) << endl;
+                    param->img = cvLoadImage( filesystem::realpath( filename ).c_str() );
+                    cout << "Now showing " << filesystem::realpath( filename ) << endl;
                 }
             }
         }
@@ -329,7 +329,7 @@ void key_callback( const ArgParam* arg, CvCallbackParam* param )
                     param->img->origin = 0;
                     cvFlip( param->img );
 #endif
-                    cout << "Now showing " << fs::realpath( filename ) << " " <<  param->frame << endl;
+                    cout << "Now showing " << filesystem::realpath( filename ) << " " <<  param->frame << endl;
                 }
             }
             else
@@ -339,8 +339,8 @@ void key_callback( const ArgParam* arg, CvCallbackParam* param )
                     cvReleaseImage( &param->img );
                     param->fileiter--;
                     filename = *param->fileiter;
-                    param->img = cvLoadImage( fs::realpath( filename ).c_str() );
-                    cout << "Now showing " << fs::realpath( filename ) << endl;
+                    param->img = cvLoadImage( filesystem::realpath( filename ).c_str() );
+                    cout << "Now showing " << filesystem::realpath( filename ) << endl;
                 }
             }
         }
@@ -810,7 +810,7 @@ void arg_parse( int argc, char** argv, ArgParam *arg )
 void usage( const ArgParam* arg )
 {
     cout << "ImageClipper - image clipping helper tool." << endl;
-    cout << "Command Usage: " << fs::basename( arg->name );
+    cout << "Command Usage: " << filesystem::basename( arg->name );
     cout << " [option]... [arg_reference]" << endl;
     cout << "  <arg_reference = " << arg->reference << ">" << endl;
     cout << "    <arg_reference> would be a directory or an image or a video filename." << endl;

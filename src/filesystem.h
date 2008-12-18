@@ -34,15 +34,15 @@
 #include <vector>
 using namespace std;
 
-namespace fs {
+namespace filesystem {
 
-    inline void create_directories( const string& path )
+    inline void r_mkdir( const string& path )
     {
         boost::filesystem::path fspath( path );
         boost::filesystem::create_directories( fspath );
     }
 
-    inline bool is_directory( const string& path )
+    inline bool is_dir( const string& path )
     {
         boost::filesystem::path fspath( path );
         return boost::filesystem::is_directory( fspath );
@@ -85,10 +85,10 @@ namespace fs {
         return string( boost::filesystem::extension( fspath ), 1 );
     }
 
-    inline string strtolower( const std::string& str )
+    inline string strtolower( const string& str )
     {
-        std::string ret = str;
-        for( std::string::size_type i = 0; i < ret.size(); i++ )
+        string ret = str;
+        for( string::size_type i = 0; i < ret.size(); i++ )
         {
             ret[i] = tolower(ret[i]);
         }
@@ -97,9 +97,9 @@ namespace fs {
 
     bool match_extensions( const string& filename, const vector<string>& extensions )
     {
-        std::string extension = boost::filesystem::extension( filename );
-        extension = fs::strtolower( extension );
-        for( std::size_t i = 0; i < extensions.size() - 1; i++ ) {
+        string extension = boost::filesystem::extension( filename );
+        extension = strtolower( extension );
+        for( size_t i = 0; i < extensions.size() - 1; i++ ) {
             if( extension == "." + extensions[i] ) return true;
         }
         return false;
