@@ -1,26 +1,26 @@
-/**
-* The MIT License
-* 
-* Copyright (c) 2008, Naotoshi Seo <sonots(at)umd.edu>
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-*/
+/** @file */
+/* The MIT License
+ * 
+ * Copyright (c) 2008, Naotoshi Seo <sonots(at)gmail.com>
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 #ifdef _MSC_VER // MS Visual Studio
 #pragma warning(disable:4996)
 #pragma warning(disable:4244) // possible loss of data
@@ -55,21 +55,25 @@ using namespace std;
 * A Callback function structure
 */
 typedef struct CvCallbackParam {
-    const char* w_name;
-    const char* miniw_name;
-    IplImage* img;
-    CvRect rect;
-    int rotate;
-    CvPoint shear;
-    CvRect circle; // use x, y for center, width as radius for wathershed marker
-    bool watershed;
-    vector<string> imtypes;
-    vector<string> filelist; // for image or directory load
-    vector<string>::iterator fileiter;
-    CvCapture* cap;          // for video load
-    int frame;               // video iter
-    const char* output_format;
-    int inc;
+    const char* w_name;        /**< main window name */
+    const char* miniw_name;    /**< sub window name */
+    IplImage* img;             /**< image to be shown */
+    // config
+    vector<string> imtypes;    /**< image file types */
+    const char* output_format; /**< output filename format */
+    int inc;                   /**< incremental speed via keyboard operations */
+    // rectangle region 
+    CvRect rect;               /**< rectangle parameter to be shown */
+    int rotate;                /**< rotation angle */
+    CvPoint shear;             /**< shear deformation */
+    // watershed
+    CvRect circle;             /**< x,y as center, width as radius */
+    bool watershed;            /**< watershed flag */
+    // filelist iterators
+    vector<string> filelist;            /**< directory reading */
+    vector<string>::iterator fileiter;  /**< iterator */
+    CvCapture* cap;                     /**< video reading */
+    int frame;                          /**< iterator */
 } CvCallbackParam ;
 
 /**
@@ -101,34 +105,34 @@ int main( int argc, char *argv[] )
         "<S> Save <F> Forward <SPACE> s and f <B> Backward <ESC> Exit",
         "Cropped",
         NULL,
+        vector<string>(),
+        NULL,
+        1,
         cvRect(0,0,0,0),
         0,
         cvPoint(0,0),
         cvRect(0,0,0,0),
         false,
         vector<string>(),
-        vector<string>(),
         vector<string>::iterator(),
         NULL,
-        0,
-        NULL,
-        1
+        0
     };
+    init_param.imtypes.push_back( "bmp" );
+    init_param.imtypes.push_back( "dib" );
+    init_param.imtypes.push_back( "jpeg" );
+    init_param.imtypes.push_back( "jpg" );
+    init_param.imtypes.push_back( "jpe" );
+    init_param.imtypes.push_back( "png" );
+    init_param.imtypes.push_back( "pbm" );
+    init_param.imtypes.push_back( "pbm" );
+    init_param.imtypes.push_back( "ppm" );
+    init_param.imtypes.push_back( "sr" );
+    init_param.imtypes.push_back( "ras" );
+    init_param.imtypes.push_back( "tiff" );
+    init_param.imtypes.push_back( "exr" );
+    init_param.imtypes.push_back( "jp2" );
     CvCallbackParam* param = &init_param;
-    param->imtypes.push_back( "bmp" );
-    param->imtypes.push_back( "dib" );
-    param->imtypes.push_back( "jpeg" );
-    param->imtypes.push_back( "jpg" );
-    param->imtypes.push_back( "jpe" );
-    param->imtypes.push_back( "png" );
-    param->imtypes.push_back( "pbm" );
-    param->imtypes.push_back( "pbm" );
-    param->imtypes.push_back( "ppm" );
-    param->imtypes.push_back( "sr" );
-    param->imtypes.push_back( "ras" );
-    param->imtypes.push_back( "tiff" );
-    param->imtypes.push_back( "exr" );
-    param->imtypes.push_back( "jp2" );
 
     ArgParam init_arg = {
         argv[0],
@@ -154,6 +158,9 @@ int main( int argc, char *argv[] )
     cvDestroyWindow( param->miniw_name );
 }
 
+/**
+ * Read a directory or video
+ */
 void load_reference( const ArgParam* arg, CvCallbackParam* param )
 {
     bool is_directory = fs::is_directory( arg->reference );
@@ -230,6 +237,9 @@ void load_reference( const ArgParam* arg, CvCallbackParam* param )
     }
 }
 
+/**
+ * Keyboard operations
+ */
 void key_callback( const ArgParam* arg, CvCallbackParam* param )
 {
     string filename = param->cap == NULL ? *param->fileiter : arg->reference;
